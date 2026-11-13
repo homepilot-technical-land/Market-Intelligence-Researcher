@@ -92,6 +92,18 @@ def main():
     x_parser = subparsers.add_parser("analyze-x", help="Analyze real-time X platform sentiment on Irish housing via xAI Grok")
     x_parser.add_argument("--topic", default="Irish housing first time buyers", help="Topic to analyze on X")
 
+    # Phase 4 Command: cluster-themes (Multi-Source Synthesis & Blueprint Generation)
+    cluster_parser = subparsers.add_parser("cluster-themes", help="Synthesize multi-source signals (PPR, CSO, X, Policy) into themes and generate asset blueprints")
+    cluster_parser.add_argument("--county", default="Meath", help="Target county focus")
+
+    # Phase 4 Command: operator-review (Interactive Grok Bot Review & Rule B-04 Dual Signoff)
+    op_review_parser = subparsers.add_parser("operator-review", help="Interactive Grok Bot Review CLI & Rule B-04 Dual Signoff")
+    op_review_parser.add_argument("--asset-id", help="Target asset ID to review or sign off")
+    op_review_parser.add_argument("--action", choices=["list", "revise", "approve-op1", "approve-op2", "reject"], default="list", help="Review action to perform")
+    op_review_parser.add_argument("--instruction", help="Instruction to Grok Bot for asset revision")
+    op_review_parser.add_argument("--operator", default="operator_1", help="Operator identity signing off")
+    op_review_parser.add_argument("--notes", default="Verified by human operator", help="Operator notes")
+
     args = parser.parse_args()
 
     pipeline = MarketIntelligencePipeline()
@@ -364,6 +376,124 @@ def main():
         print(f"  • Content Assets: {len(saved_asset_ids)} draft X bot threads (Collection: 'content_assets')")
         print(f"  • Operator Status: PENDING_OPERATOR_APPROVAL (Gated under Rule B-04)")
         print("===================================================================\n")
+
+    elif args.command == "cluster-themes":
+        from src.connectors.api_connectors import PropertyPriceRegisterConnector, CSOStatConnector
+        from src.intelligence.theme_clustering import ThemeClusteringEngine
+        from src.generators.asset_blueprint import CampaignAssetBlueprintGenerator
+
+        print(f"\nExecuting Multi-Source Theme Clustering for County: {args.county}...")
+        ppr_conn = PropertyPriceRegisterConnector()
+        cso_conn = CSOStatConnector()
+
+        ppr_stats_raw = ppr_conn.calculate_county_affordability_benchmarks(county=args.county)
+        cso_stats_raw = cso_conn.fetch_housing_market_indicators()
+
+        ppr_stats = {
+            "median_price": ppr_stats_raw.get("median_starter_home_price", 375000.0),
+            "transaction_count": ppr_stats_raw.get("sample_size", 50)
+        }
+        cso_stats = {
+            "annual_change_pct": cso_stats_raw.get("table_hpm05", {}).get("national_annual_inflation_rate_percent", 8.4)
+        }
+
+        engine = ThemeClusteringEngine(repository=pipeline.repo)
+        themes = engine.cluster_signals(
+            county=args.county,
+            ppr_stats=ppr_stats,
+            cso_stats=cso_stats,
+            grok_pain_points=[
+                f"Regional price caps out of sync with new-build pricing in {args.county}",
+                "Conveyancing solicitor delays holding up drawdown"
+            ]
+        )
+
+        blueprint_gen = CampaignAssetBlueprintGenerator(repository=pipeline.repo)
+        total_assets = 0
+        print(f"\nGenerated {len(themes)} Strategic Opportunity Themes for County {args.county}:")
+        for i, t in enumerate(themes, 1):
+            print(f"\n[{i}] {t.title} (Severity: {t.severity_score:.1f}/100)")
+            print(f"    Primary Tool: {t.primary_tool}")
+            print(f"    Problem: {t.core_problem}")
+            print(f"    Hook: {t.homepilot_positioning_hook}")
+            print(f"    Evidence Citations: {t.evidence_ids}")
+
+            assets = blueprint_gen.generate_blueprint_suite(t)
+            total_assets += len(assets)
+            print(f"    -> Generated {len(assets)} Blueprints (X Thread, Carousel, Video Script, Brief) in MongoDB collection 'content_assets'.")
+
+        print(f"\nSuccessfully clustered {len(themes)} themes and persisted {total_assets} asset blueprints in MongoDB ('content_assets').")
+        print("Status: PENDING_OPERATOR_APPROVAL (Gated under Rule B-04). Use 'python cli.py operator-review' to inspect.")
+
+    elif args.command == "operator-review":
+        from src.intelligence.operator_dialogue import OperatorDialogueEngine
+        engine = OperatorDialogueEngine(repository=pipeline.repo)
+
+        if args.action == "list":
+            pending = engine.list_pending_assets()
+            print(f"\n=== Pending Asset Blueprints in MongoDB ('content_assets') ===")
+            print(f"Found {len(pending)} assets awaiting operator review/signoff:\n")
+            for i, a in enumerate(pending, 1):
+                print(f"[{i}] Asset ID: {a.asset_id} | Type: {a.asset_type:<24} | Status: {a.review_status}")
+                print(f"    Headline: {a.content_payload.headline}")
+                print(f"    Citations: {a.content_payload.evidence_citations}")
+                print(f"    Notes: {a.reviewer_notes}\n")
+
+        elif args.action == "revise":
+            if not args.asset_id or not args.instruction:
+                print("Error: --asset-id and --instruction required for revise action.")
+                sys.exit(1)
+            print(f"\nInstructing Grok Bot to revise asset {args.asset_id}...")
+            revised = engine.revise_asset_with_grok(
+                asset_id=args.asset_id,
+                operator_instruction=args.instruction,
+                operator_id=args.operator
+            )
+            print(f"\n=== Revised Asset from Grok Bot ===")
+            print(f"Asset ID: {revised.asset_id}")
+            print(f"Headline: {revised.content_payload.headline}")
+            print(f"Copy:\n{revised.content_payload.copy_body}")
+            print(f"Notes: {revised.reviewer_notes}")
+
+        elif args.action == "approve-op1":
+            if not args.asset_id:
+                print("Error: --asset-id required for approve-op1.")
+                sys.exit(1)
+            approved = engine.signoff_operator_1(
+                asset_id=args.asset_id,
+                operator_id=args.operator or "operator_1_product",
+                notes=args.notes
+            )
+            print(f"\n[Operator 1 Approved]: Asset {approved.asset_id} status updated to '{approved.review_status}'.")
+            print("Next step: Operator 2 Compliance signoff required before publication.")
+
+        elif args.action == "approve-op2":
+            if not args.asset_id:
+                print("Error: --asset-id required for approve-op2.")
+                sys.exit(1)
+            try:
+                approved = engine.signoff_operator_2(
+                    asset_id=args.asset_id,
+                    operator_id=args.operator or "operator_2_compliance",
+                    notes=args.notes
+                )
+                print(f"\n[RULE B-04 COMPLETE]: Asset {approved.asset_id} status is now '{approved.review_status}'!")
+                print(f"Signed by: {approved.reviewed_by}")
+                print(f"Scheduled publish: {approved.scheduled_publish_time}")
+            except ValueError as e:
+                print(f"\nError: {e}")
+                sys.exit(1)
+
+        elif args.action == "reject":
+            if not args.asset_id:
+                print("Error: --asset-id required for reject.")
+                sys.exit(1)
+            rejected = engine.reject_asset(
+                asset_id=args.asset_id,
+                operator_id=args.operator,
+                reason=args.notes
+            )
+            print(f"\n[REJECTED]: Asset {rejected.asset_id} marked as '{rejected.review_status}'.")
 
     else:
         parser.print_help()
