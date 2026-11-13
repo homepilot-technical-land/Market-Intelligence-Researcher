@@ -127,6 +127,8 @@ flowchart TD
     - *Master architecture & execution plan for Phase 5: Autonomous background daemon (07:00 UTC), RFC 7807 error formatting, PII sanitization guards, PostHog telemetry dashboards, and Docker/CI-CD.*
 29. [homepilot_phase5_execution_and_completion_report.md](homepilot_phase5_execution_and_completion_report.md)
     - *Phase 5 completion report: Zero-trust PII scrubbing, RFC 7807 middleware, autonomous scheduling daemon, Docker/CI-CD packaging, and turnkey MongoDB Atlas readiness.*
+30. [homepilot_grokbot_desktop_and_mobile_synchronization_spec.md](homepilot_grokbot_desktop_and_mobile_synchronization_spec.md)
+    - *GrokBot Desktop & Mobile Synchronization: Master persona prompt, 5 operational routines, and zero-config web & tunnel setup guide.*
 
 ---
 
