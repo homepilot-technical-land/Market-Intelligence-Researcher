@@ -94,10 +94,32 @@ flowchart TD
 
 ---
 
+### Part 5: Live Ingestion Connectors, Dynamic Taxonomy & xAI Discourse
+18. [homepilot_firecrawl_integration_and_live_pipeline_report.md](homepilot_firecrawl_integration_and_live_pipeline_report.md)
+    - *Live Firecrawl API integration, clean markdown scraping, search-then-scrape pattern, and Facebook FTB community discovery.*
+19. [homepilot_taxonomy_dynamics_and_authority_expansion.md](homepilot_taxonomy_dynamics_and_authority_expansion.md)
+    - *Dynamic query formulation, keyword evolution, and automated discovery of new authoritative Irish sources.*
+20. [homepilot_xai_grok_integration_and_live_execution_report.md](homepilot_xai_grok_integration_and_live_execution_report.md)
+    - *Live verification of xAI API (Grok), real-time X platform discourse extraction, token accounting, and persistent budget tracking.*
+21. [homepilot_xai_strategic_intelligence_and_communication_framework.md](homepilot_xai_strategic_intelligence_and_communication_framework.md)
+    - *Strategic intelligence framework: X discourse mining, high-utility signal vs political noise, future bot communication synthesis, and 3 R's human validation gate.*
+
+---
+
+### Part 6: Theme Clustering, Asset Blueprints & GitHub Operations (Phase 4)
+22. [homepilot_phase4_and_phase5_roadmap_and_github_setup.md](homepilot_phase4_and_phase5_roadmap_and_github_setup.md)
+    - *High-level roadmap for Phases 4 and 5, with explicit instructions for GitHub remote linking and CI/CD automation.*
+23. [homepilot_phase4_deep_research_and_execution_plan.md](homepilot_phase4_deep_research_and_execution_plan.md)
+    - *Deep research specifications for multi-source theme clustering, asset blueprint generation, Rule B-02 double citation guard, and Grok Bot operator review dialogue.*
+24. [homepilot_phase4_execution_and_completion_report.md](homepilot_phase4_execution_and_completion_report.md)
+    - *Phase 4 completion report: multi-source clustering, 8 generated blueprints, live dual operator sign-off in MongoDB, and 54/54 tests passing.*
+
+---
+
 ## Current System Test Verification Status
 
 ```bash
-source .venv/bin/activate && pytest -v
-======================= 32 passed, 54 warnings in 33.01s =======================
+source .venv/bin/activate && pytest -q
+======================= 54 passed in 21.49s =======================
 ```
-All 32 unit and integration tests are green.
+All 54 unit and integration tests across the entire codebase are 100% green.
