@@ -95,15 +95,24 @@ def test_firecrawl_facebook_community_search():
 
 def test_firecrawl_budget_tracker_enforcement():
     tracker = BudgetGovernanceTracker()
-    # Force exhaustion
-    burn = tracker.get_current_burn()
-    burn.firecrawl_credits_used = 5000
-    tracker._local_burn_store[tracker._current_month()] = burn.model_dump()
+    initial_credits = tracker.get_current_burn().firecrawl_credits_used
 
-    connector = FirecrawlConnector(api_key="fc-test", budget_tracker=tracker)
-    res = connector.scrape_url("https://www.example.com")
-    assert res["status"] == 429
-    assert "Blocked by Budget Governor" in res["title"]
+    try:
+        # Force exhaustion
+        burn = tracker.get_current_burn()
+        burn.firecrawl_credits_used = 5000
+        tracker._local_burn_store[tracker._current_month()] = burn.model_dump()
+
+        connector = FirecrawlConnector(api_key="fc-test", budget_tracker=tracker)
+        res = connector.scrape_url("https://www.example.com")
+        assert res["status"] == 429
+        assert "Blocked by Budget Governor" in res["title"]
+    finally:
+        # Restore credits
+        burn = tracker.get_current_burn()
+        burn.firecrawl_credits_used = initial_credits
+        tracker._local_burn_store[tracker._current_month()] = burn.model_dump()
+        tracker._save_burn_state()
 
 def test_firecrawl_budget_consumption_recording():
     tracker = BudgetGovernanceTracker()

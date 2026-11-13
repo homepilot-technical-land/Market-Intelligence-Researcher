@@ -88,6 +88,10 @@ def main():
     auth_parser = subparsers.add_parser("discover-authorities", help="Discover new authoritative Irish sources similar to the 35 seeds using dynamic taxonomy queries")
     auth_parser.add_argument("--county", default="Meath", help="Target county focus")
 
+    # Command: analyze-x (Native X/Twitter Sentiment Synthesis via xAI Grok)
+    x_parser = subparsers.add_parser("analyze-x", help="Analyze real-time X platform sentiment on Irish housing via xAI Grok")
+    x_parser.add_argument("--topic", default="Irish housing first time buyers", help="Topic to analyze on X")
+
     args = parser.parse_args()
 
     pipeline = MarketIntelligencePipeline()
@@ -229,7 +233,7 @@ def main():
             print(f"! xAI Grok API: NOT CONFIGURED (Using simulation mode - set XAI_API_KEY in .env)")
 
         # 4. Budget Burn Status
-        tracker = BudgetGovernanceTracker(repository=pipeline.repo)
+        tracker = BudgetGovernanceTracker(repository=pipeline.repo, state_file="config/budget_burn_state.json")
         burn = tracker.get_current_burn()
         print(f"\n--- Monthly Budget & Quota Tracking ({burn.billing_month}) ---")
         print(f"Firecrawl Credits: {burn.firecrawl_credits_used} / {burn.firecrawl_credit_limit} used")
@@ -294,6 +298,21 @@ def main():
             print(f"    URL: {c.root_url}")
             print(f"    Publisher: {c.publisher_identity}")
             print(f"    Justification: {c.justification[:120]}...\n")
+
+    elif args.command == "analyze-x":
+        from src.intelligence.grok_service import GrokService
+        from src.coordination.budget_tracker import BudgetGovernanceTracker
+        tracker = BudgetGovernanceTracker(repository=pipeline.repo, state_file="config/budget_burn_state.json")
+        grok = GrokService(budget_tracker=tracker)
+        print(f"\nSynthesizing X Platform Sentiment via xAI Grok for topic: '{args.topic}'...")
+        res = grok.analyze_x_platform_sentiment(topic=args.topic)
+        print(f"\n--- Grok Real-Time X Sentiment Breakdown ---")
+        print(f"Tokens: {res.prompt_tokens} prompt + {res.completion_tokens} completion (Cost: ${res.cost_usd:.5f} USD)")
+        print("-" * 60)
+        print(res.analysis)
+        print("-" * 60)
+        print("Key Findings:", res.key_findings)
+        print("Strategic Implications:", res.strategic_implications)
 
     else:
         parser.print_help()

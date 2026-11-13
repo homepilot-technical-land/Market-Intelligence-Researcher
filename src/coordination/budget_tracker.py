@@ -31,14 +31,41 @@ class BudgetGovernanceTracker:
     def __init__(
         self,
         config_path: str = "config/budget_and_quota_policy.json",
+        state_file: Optional[str] = None,
         repository: Optional[IntelligenceRepository] = None,
         telemetry: Optional[PostHogTelemetry] = None
     ):
         self.config_path = config_path
+        self.state_file = state_file or os.getenv("BUDGET_STATE_FILE")
         self.repo = repository or IntelligenceRepository()
         self.telemetry = telemetry or PostHogTelemetry()
         self.policy = self._load_policy()
-        self._local_burn_store: Dict[str, Dict[str, Any]] = {}
+        self._local_burn_store: Dict[str, Dict[str, Any]] = self._load_burn_state()
+
+    def _load_burn_state(self) -> Dict[str, Dict[str, Any]]:
+        if self.state_file and os.path.exists(self.state_file):
+            try:
+                with open(self.state_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                pass
+        return {}
+
+    def _save_burn_state(self):
+        if not self.state_file:
+            return
+        try:
+            os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
+            serializable = {}
+            for m, data in self._local_burn_store.items():
+                serializable[m] = {
+                    k: (v.isoformat() if hasattr(v, "isoformat") else v)
+                    for k, v in data.items()
+                }
+            with open(self.state_file, "w", encoding="utf-8") as f:
+                json.dump(serializable, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Could not persist local budget burn state: {e}")
 
     def _load_policy(self) -> Dict[str, Any]:
         if os.path.exists(self.config_path):
@@ -109,6 +136,7 @@ class BudgetGovernanceTracker:
         burn.firecrawl_credits_used += credits
         burn.last_updated_at = datetime.now(timezone.utc)
         self._local_burn_store[month] = burn.model_dump()
+        self._save_burn_state()
 
         self.telemetry.capture("crawl.credit.consumed", {
             "source_id": source_id,
@@ -124,6 +152,7 @@ class BudgetGovernanceTracker:
         burn.xai_cost_usd = round(burn.xai_cost_usd + cost_usd, 4)
         burn.last_updated_at = datetime.now(timezone.utc)
         self._local_burn_store[month] = burn.model_dump()
+        self._save_burn_state()
 
         self.telemetry.capture("grok.api.cost.recorded", {
             "doc_id": doc_id,
@@ -142,3 +171,4 @@ class BudgetGovernanceTracker:
         burn.estimated_dollars_saved_by_cache = round(burn.estimated_dollars_saved_by_cache + (pages * 0.007), 3)
         burn.last_updated_at = datetime.now(timezone.utc)
         self._local_burn_store[month] = burn.model_dump()
+        self._save_burn_state()
