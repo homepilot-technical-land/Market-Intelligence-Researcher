@@ -8,3 +8,4 @@ services/application_service/node_modules/
 dist/
 build/
 *.log
+config/budget_burn_state.json
