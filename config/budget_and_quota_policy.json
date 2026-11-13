@@ -1,0 +1,47 @@
+{
+  "policy_name": "HomePilot Internal Market Intelligence Budget & Quota Governance",
+  "version": "1.0.0",
+  "target_monthly_budget_eur": 49.00,
+  "firecrawl": {
+    "plan_tier": "Hobby",
+    "cost_eur": 14.00,
+    "monthly_credit_limit": 5000,
+    "warning_threshold_credits": 4500,
+    "hard_stop_credits": 5000,
+    "mode": "markdown_only",
+    "credits_per_page_target": 1
+  },
+  "xai_grok": {
+    "monthly_budget_usd": 27.00,
+    "monthly_budget_eur": 25.00,
+    "warning_threshold_usd": 22.00,
+    "hard_stop_usd": 27.00,
+    "model_rates": {
+      "grok-2": {
+        "input_per_million": 2.00,
+        "output_per_million": 10.00
+      },
+      "grok-2-mini": {
+        "input_per_million": 0.20,
+        "output_per_million": 1.00
+      }
+    }
+  },
+  "storage_and_infra": {
+    "mongodb_tier": "Atlas_M0_Sandbox",
+    "mongodb_storage_limit_mb": 512,
+    "redis_tier": "Upstash_Serverless",
+    "daily_command_limit": 10000,
+    "hosting_tier": "Render_Starter_Or_Local",
+    "monthly_infra_budget_eur": 10.00,
+    "expected_actual_infra_eur": 0.00
+  },
+  "efficiency_rules": {
+    "enforce_sha256_cache": true,
+    "bypass_llm_on_hash_match": true,
+    "min_composite_score_for_grok_deep_dive": 70.0,
+    "allow_grok_on_statutory_policy_diff": true,
+    "strip_boilerplate_prior_to_prompt": true,
+    "max_prompt_context_tokens": 2000
+  }
+}
