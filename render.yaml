@@ -37,3 +37,20 @@ services:
     name: homepilot-intelligence-redis
     plan: free
     ipAllowList: [] # Blank allow list = internal access only
+
+  # 4. Market Intelligence MCP Server (24/7 Cloud Connector for GrokBot & Mobile)
+  - type: web
+    name: homepilot-market-intelligence-mcp
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python src/mcp_server.py --transport streamable-http
+    envVars:
+      - key: PYTHON_ENV
+        value: production
+      - key: XAI_API_KEY
+        sync: false
+      - key: FIRECRAWL_API_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false

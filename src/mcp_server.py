@@ -6,6 +6,14 @@ and submit knowledge gaps without direct database credentials.
 """
 
 import sys
+import os
+from pathlib import Path
+
+# Ensure project root is always in Python path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import logging
 from typing import List, Dict, Any, Optional
 from mcp.server.mcpserver import MCPServer
@@ -153,20 +161,39 @@ def ask_research_engine(question: str, county: Optional[str] = "Meath") -> Dict[
 
 if __name__ == "__main__":
     import argparse
+    import uvicorn
+    from starlette.applications import Starlette
+    from starlette.responses import JSONResponse
+    from starlette.routing import Route
+    from mcp.server.transport_security import TransportSecuritySettings
+
     parser = argparse.ArgumentParser(description="HomePilot Market Intelligence MCP Server")
     parser.add_argument(
         "--transport",
-        choices=["stdio", "sse", "streamable-http"],
-        default="stdio",
-        help="MCP transport protocol (stdio for local desktop, sse for remote/mobile)"
+        choices=["stdio", "sse", "streamable-http", "remote"],
+        default="remote",
+        help="MCP transport protocol ('remote' serves both SSE and Streamable HTTP with tunnel security enabled)"
     )
-    parser.add_argument("--host", default="0.0.0.0", help="Host interface for SSE transport")
-    parser.add_argument("--port", type=int, default=8001, help="Port for SSE transport (default 8001)")
+    parser.add_argument("--host", default="0.0.0.0", help="Host interface (default 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8001")), help="Port for web/remote transport (default 8001 or $PORT)")
     args = parser.parse_args()
 
     if args.transport == "stdio":
         server.run(transport="stdio")
     elif args.transport == "sse":
-        server.run(transport="sse", host=args.host, port=args.port)
-    elif args.transport == "streamable-http":
-        server.run(transport="streamable-http", host=args.host, port=args.port)
+        sec = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
+            allowed_hosts=["*"],
+            allowed_origins=["*"]
+        )
+        server.run(transport="sse", host=args.host, port=args.port, transport_security=sec)
+    else:
+        # Default 'remote' / 'streamable-http': Modern Streamable HTTP transport for Grok Connectors & Cloudflare
+        sec = TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
+            allowed_hosts=["*"],
+            allowed_origins=["*"]
+        )
+        print(f"[*] Starting HomePilot Market Intelligence MCP Server on {args.host}:{args.port}")
+        print(f"[*] Streamable HTTP endpoint: /mcp")
+        server.run(transport="streamable-http", host=args.host, port=args.port, transport_security=sec)
