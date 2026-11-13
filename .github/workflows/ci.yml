@@ -1,0 +1,48 @@
+name: Market Intelligence CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  python-tests:
+    name: "Python Pipeline & Acceptance Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Set up Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: "Install dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "Run pytest test suite"
+        run: |
+          pytest -v
+
+  node-tests:
+    name: "Node.js Application Service Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Set up Node.js 20"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: "Run Node health test"
+        run: |
+          cd services/application_service
+          node -e "const s = require('./src/index.js'); console.log('Node application service module loaded successfully');"

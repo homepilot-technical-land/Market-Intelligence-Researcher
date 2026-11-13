@@ -1,0 +1,119 @@
+{
+  "version": "2.0.0",
+  "project": "HomePilot Market Intelligence & Marketing Activation",
+  "campaign_master": {
+    "title": "HomePilot: The Homeownership Operating System / Your Journey to Homeownership",
+    "timeline": "Annual Cycle (Iterative 3-4 Month Sprints)",
+    "mission": {
+      "core_statement": "HomePilot exists to simplify and de-risk the journey to homeownership by providing individuals and families with the financial intelligence, planning tools, guidance, and ongoing support needed to confidently buy, manage, improve, and maximise the value of their home throughout every stage of ownership.",
+      "strategic_shift": {
+        "competitor_question": "Can I get a mortgage?",
+        "homepilot_question": "Am I ready to become a homeowner, and how do I build long-term wealth through property?"
+      }
+    },
+    "strategic_objective": "Shift consumer perception from 'Mortgage Calculator' to 'Homeownership Operating System'."
+  },
+  "tone_of_voice": {
+    "personalities": {
+      "primary": "Trusted Guide",
+      "secondary": "Homeownership Companion",
+      "tertiary": "Financial Coach"
+    },
+    "characteristics": [
+      "Encouraging",
+      "Educational",
+      "Reassuring",
+      "Evidence-based",
+      "Empowering",
+      "Future-focused",
+      "Human"
+    ],
+    "strictly_avoid": [
+      "Bank language",
+      "Financial jargon",
+      "Mortgage-centric language",
+      "Fear-based selling"
+    ],
+    "jargon_reversals": [
+      {
+        "bank_jargon": "Your amortisation schedule has improved.",
+        "homepilot_voice": "You're now 4 years closer to financial freedom."
+      },
+      {
+        "bank_jargon": "Loan-to-Value ratio exceeds underwriting threshold.",
+        "homepilot_voice": "Let's look at how closing a small deposit gap unlocks lower repayment rates."
+      },
+      {
+        "bank_jargon": "Macroprudential stress-test failure on net disposable income.",
+        "homepilot_voice": "Lenders want to see you can handle rate increases. Here's how to show proof of repayment without sacrificing your lifestyle."
+      }
+    ]
+  },
+  "five_ss_framework": {
+    "sell": "Sell confidence, certainty, and readiness. Not calculators, dashboards, or software.",
+    "serve": "Help users save deposits, buy homes, manage ownership, and build equity beyond closing.",
+    "speak": "Reach across LinkedIn, X/Twitter, Instagram, TikTok, YouTube, Push Notifications, and Email.",
+    "save": "Save money, time, stress, mortgage interest, and costly closing mistakes through Gap Analysis.",
+    "sizzle": "Create emotional moments: Deposit Goal Achieved, Mortgage Ready, Keys Collected, First Overpayment, First €10,000 Equity Built."
+  },
+  "audience_segments": [
+    {
+      "segment_id": "seg_1_frustrated_ftb",
+      "name": "The Frustrated First-Time Buyer",
+      "demographics": { "age": "28-40", "income": "€35k-€90k" },
+      "pain_point": "Repeatedly uses mortgage calculators, speaks with brokers, feels stuck, overwhelmed by jargon and lack of roadmap.",
+      "emotional_state": "Confused and anxious -> Desires certainty and step-by-step roadmap.",
+      "primary_hook": "Stop calculating borrowing limits. Start building your step-by-step homeownership plan."
+    },
+    {
+      "segment_id": "seg_2_mortgage_ready_optimiser",
+      "name": "The Mortgage-Ready Optimiser",
+      "demographics": { "age": "27-38", "income": "€60k-€120k+" },
+      "pain_point": "Financially ready but confused about Help to Buy (HTB) vs First Home Scheme (FHS) trade-offs, rates, and cash buffers.",
+      "emotional_state": "Prepared but cautious -> Desires optimization and strategy validation.",
+      "primary_hook": "Being mortgage-ready isn't the same as being homeownership-ready. Optimize your schemes and rate strategy before you apply."
+    },
+    {
+      "segment_id": "seg_3_homeownership_planner",
+      "name": "The Homeownership Planner",
+      "demographics": { "age": "28-45", "income": "€50k-€130k" },
+      "pain_point": "Sale agreed; drowning in solicitors, structural surveys, valuation deadlines, and unexpected closing fees.",
+      "emotional_state": "Stressed and frantic -> Desires task visibility, coordination, and timeline control.",
+      "primary_hook": "Over 60 tasks stand between 'Sale Agreed' and 'Keys Collected'. Coordinate your purchase with clarity."
+    },
+    {
+      "segment_id": "seg_4_new_homeowner",
+      "name": "The New Homeowner",
+      "demographics": { "age": "29-45", "income": "€50k-€150k" },
+      "pain_point": "Recently bought; cash-strapped after closing, managing unexpected furniture, renovation, and maintenance costs.",
+      "emotional_state": "Relieved but cash-poor -> Desires ongoing maintenance and budget stabilization.",
+      "primary_hook": "The journey doesn't end when you get the keys. Protect and budget for your home's ongoing health."
+    },
+    {
+      "segment_id": "seg_5_future_wealth_builder",
+      "name": "The Future Wealth Builder",
+      "demographics": { "age": "30-50", "income": "€70k-€180k+" },
+      "pain_point": "Wants to maximize equity growth, overpayment interest savings, green mortgage retrofits, and future upgrades.",
+      "emotional_state": "Ambitious and forward-thinking -> Desires property equity acceleration.",
+      "primary_hook": "Your home is your largest financial asset. Build equity faster and shave years off your mortgage."
+    }
+  ],
+  "commercial_offerings": {
+    "free_tier": "Dashboard overview, basic readiness score, scenario calculations",
+    "journey_pass": {
+      "price": "€39 - €49",
+      "duration": "90-Day Buyer Journey Pass (Includes 30 bonus days)",
+      "positioning": "Psychologically aligned with the 3-month buying cycle. Unlocks 60+ task workflows, scheme optimization, and stress-testing."
+    },
+    "premium_monthly": {
+      "price": "€25 / month",
+      "positioning": "Full platform access for long-term ownership, wealth building, and renovation planning."
+    }
+  },
+  "storytelling_frameworks": [
+    "Before-After-Bridge (Problem -> Life with HomePilot -> The Platform Bridge)",
+    "The Troublemaker (Introduce systemic friction early: hidden fees, stress test delays)",
+    "Future Pacing (Help buyer visualize holding keys and building first €10k equity)",
+    "Evidence-Based Validation (Anchor every narrative to verified Irish market data)"
+  ]
+}

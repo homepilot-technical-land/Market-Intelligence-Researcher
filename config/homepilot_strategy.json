@@ -1,0 +1,114 @@
+{
+  "project": "HomePilot Market Intelligence Researcher",
+  "brand_positioning": "Homeownership Operating System (not merely a mortgage calculator)",
+  "systems_thinking_framework": {
+    "philosophy": "Non-linear systems dynamics over linear sequence. Evaluates stocks, flows, delays, bottlenecks, feedback loops, and mental models.",
+    "iceberg_model": {
+      "level_1_event": "Surface-level market announcement or policy change",
+      "level_2_pattern": "Historical behavioural trends and price/volume trajectories over time",
+      "level_3_structure": "Regulatory architectures, Central Bank macroprudential rules, tax codes, and planning systems",
+      "level_4_mental_model": "Underlying consumer and lender beliefs (e.g. 'mortgage-ready equals homeownership-ready')"
+    },
+    "feedback_loop_archetypes": {
+      "balancing_loops": ["Central Bank LTI/LTV macroprudential cooling", "Affordability exhaustion", "Interest rate stress-testing brakes"],
+      "reinforcing_loops": ["Subsidy capitalization into house prices", "Scarcity-driven panic bidding", "Equity appreciation compounding"]
+    }
+  },
+  "strategic_dimensions": [
+    {
+      "id": "financial_confidence",
+      "name": "Financial Confidence",
+      "objective": "Information that helps prospective buyers clearly understand their financial position, deposit readiness, borrowing boundaries, and stress tolerance."
+    },
+    {
+      "id": "decision_intelligence",
+      "name": "Decision Intelligence",
+      "objective": "Information that empowers buyers to make better, well-timed homeownership decisions (location, property type, scheme trade-offs, loan structures)."
+    },
+    {
+      "id": "reduced_uncertainty",
+      "name": "Reduced Uncertainty",
+      "objective": "Information that cuts through unknowns, confusing legal jargon, hidden conveyancing/survey costs, and bureaucratic ambiguity."
+    },
+    {
+      "id": "financial_outcomes",
+      "name": "Financial Outcomes",
+      "objective": "Information that leads to measurable financial improvement: maximizing tax reliefs (HTB), avoiding overpaying on interest/rates, or optimizing grant claims."
+    },
+    {
+      "id": "homeownership_journey",
+      "name": "Homeownership Journey",
+      "objective": "Information supporting the emotional and practical trajectory from aspiration to mortgage-readiness, bidding, approval, drawdown, and long-term ownership."
+    }
+  ],
+  "active_campaign_themes": [
+    {
+      "id": "borrowing_capacity",
+      "title": "Understanding Your True Borrowing Capacity",
+      "focus": "Macroprudential rules, income multiples, exemptions, and stress testing."
+    },
+    {
+      "id": "real_cost_of_buying",
+      "title": "The Real Cost of Buying a Home",
+      "focus": "Beyond the deposit: legal fees, stamp duty, valuation, structural surveys, local property tax, and furnishing."
+    },
+    {
+      "id": "financial_readiness",
+      "title": "Preparing Financially for Homeownership",
+      "focus": "Savings habits, clearing high-interest debt, rent-as-proof-of-repayment, and credit profile hygiene."
+    },
+    {
+      "id": "market_reality",
+      "title": "Understanding the Irish Property Market",
+      "focus": "Asking vs. sold price gaps (PPR vs. Daft), bidding dynamics, regional supply constraints, and new phase releases."
+    },
+    {
+      "id": "ftb_readiness",
+      "title": "First-Time Buyer Financial Readiness",
+      "focus": "Help to Buy (HTB), First Home Scheme (equity share), Local Authority Home Loans, and navigating eligibility shifts."
+    },
+    {
+      "id": "informed_decisions",
+      "title": "Making Better Decisions Before Committing to a Mortgage",
+      "focus": "Fixed vs. variable rates, green mortgages, BER ratings, energy retrofit costs, and long-term flexibility."
+    },
+    {
+      "id": "mortgage_ready_vs_homeownership_ready",
+      "title": "Mortgage-Ready vs. Homeownership-Ready",
+      "focus": "Getting bank approval is step one; holding sufficient emergency funds, buffer reserves, and life stage alignment is true ownership readiness."
+    }
+  ],
+  "intelligence_categories": [
+    "Irish residential property markets",
+    "Housing supply and residential developments",
+    "Mortgage and financial planning",
+    "First-time buyer schemes",
+    "Housing policy and regulation",
+    "Property prices and transactions",
+    "Planning and zoning",
+    "Geography and infrastructure",
+    "Consumer behaviour",
+    "Homeownership challenges",
+    "Affordability and financial readiness",
+    "Industry research and market developments"
+  ],
+  "ten_strategic_questions": [
+    "What happened?",
+    "Why does it matter?",
+    "Who is affected?",
+    "What customer problem does it relate to?",
+    "How does it connect to HomePilot?",
+    "Which product capability could help?",
+    "Does it support an existing campaign?",
+    "Does it create a new campaign opportunity?",
+    "Is the information time-sensitive?",
+    "What additional evidence is required?"
+  ],
+  "product_feature_mapping": {
+    "borrowing_limits": "HomePilot Borrowing Power Estimator & Central Bank Exemption Modeler",
+    "repayments_interest": "HomePilot Core Mortgage Calculator (Fixed, Variable, Green)",
+    "schemes_equity": "HomePilot First Home Scheme & Help-to-Buy Integration Hub",
+    "total_acquisition_costs": "HomePilot True Cost of Buying & Cash Buffer Planner",
+    "scenario_comparison": "HomePilot Multi-Scenario Comparison Engine (Deposit vs. Rate shifts)"
+  }
+}

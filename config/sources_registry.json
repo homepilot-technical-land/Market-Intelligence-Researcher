@@ -1,0 +1,541 @@
+{
+  "$schema": "./sources_registry_schema.json",
+  "version": "1.0.0",
+  "project": "HomePilot Market Intelligence Researcher",
+  "sources": [
+    {
+      "id": "eireestate",
+      "name": "EireEstate",
+      "url": "https://www.eireestate.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 100,
+        "include_paths": ["/property", "/for-sale", "/new-homes"],
+        "exclude_paths": ["/login", "/register", "/terms", "/privacy"]
+      },
+      "tags": ["listings", "market_trends", "pricing"]
+    },
+    {
+      "id": "proper_meath_navan",
+      "name": "Proper.ie (Navan, Meath)",
+      "url": "https://proper.ie/county/Meath/area/Navan",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 50,
+        "include_paths": ["/county/Meath"],
+        "exclude_paths": []
+      },
+      "tags": ["regional_pricing", "commuter_belt", "meath", "navan"]
+    },
+    {
+      "id": "myplan_ie",
+      "name": "MyPlan.ie",
+      "url": "https://www.myplan.ie/#",
+      "ecosystem": "Geographic and planning intelligence",
+      "connector_type": "api_or_dataset",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "api_gis",
+        "api_endpoint": "https://www.myplan.ie/viewer/",
+        "dataset_type": "planning_zoning"
+      },
+      "tags": ["zoning", "planning", "land_use", "local_area_plans"]
+    },
+    {
+      "id": "property_price_register",
+      "name": "Property Price Register Ireland",
+      "url": "https://propertypriceregisterireland.com/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "api_or_dataset",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "dataset_download",
+        "dataset_format": "csv",
+        "source_entity": "Property Services Regulatory Authority"
+      },
+      "tags": ["sold_prices", "stamp_duty", "historical_transactions"]
+    },
+    {
+      "id": "lda_projects",
+      "name": "Land Development Agency (LDA)",
+      "url": "https://lda.ie/projects/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 3,
+        "page_limit": 100,
+        "include_paths": ["/projects"],
+        "exclude_paths": []
+      },
+      "tags": ["affordable_housing", "state_land", "cost_rental"]
+    },
+    {
+      "id": "ccpc_homebuyers_guides",
+      "name": "CCPC - Home Buyers Guides",
+      "url": "https://www.ccpc.ie/manage-your-money/buying-a-home/home-buyers-guides",
+      "ecosystem": "Consumer and behavioural intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 150,
+        "include_paths": ["/manage-your-money/buying-a-home", "/manage-your-money/mortgages"],
+        "exclude_paths": ["/buying-a-car", "/scams", "/business"]
+      },
+      "tags": ["consumer_protection", "mortgage_guides", "first_time_buyer_rights"]
+    },
+    {
+      "id": "gov_housing",
+      "name": "Department of Housing, Local Government and Heritage",
+      "url": "https://www.gov.ie/en/department-of-housing-local-government-and-heritage/",
+      "ecosystem": "Government and policy intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 200,
+        "include_paths": ["/en/department-of-housing", "/en/press-releases", "/en/publication"],
+        "exclude_paths": ["/en/search"]
+      },
+      "tags": ["housing_for_all", "legislation", "policy_announcements", "grants"]
+    },
+    {
+      "id": "citizens_info_housing",
+      "name": "Citizens Information - Housing",
+      "url": "https://www.citizensinformation.ie/en/housing/",
+      "ecosystem": "Government and policy intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 250,
+        "include_paths": ["/en/housing/owning-a-home", "/en/housing/planning-permission", "/en/housing/housing-grants-and-schemes"],
+        "exclude_paths": ["/en/housing/renting-a-home/tenants-rights-and-obligations"]
+      },
+      "tags": ["schemes", "local_authority_loans", "first_home_scheme", "help_to_buy"]
+    },
+    {
+      "id": "citizens_info_employment",
+      "name": "Citizens Information - Employment",
+      "url": "https://www.citizensinformation.ie/en/employment/",
+      "ecosystem": "Consumer and behavioural intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 2,
+        "page_limit": 100,
+        "include_paths": ["/en/employment/types-of-employment", "/en/employment/employment-rights-and-conditions"],
+        "exclude_paths": []
+      },
+      "tags": ["probation", "income_verification", "contract_types"]
+    },
+    {
+      "id": "revenue_property",
+      "name": "Revenue Commissioners - Property & Taxes",
+      "url": "https://www.revenue.ie/en/property/index.aspx",
+      "ecosystem": "Government and policy intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 150,
+        "include_paths": ["/en/property/help-to-buy-incentive", "/en/property/local-property-tax", "/en/property/stamp-duty"],
+        "exclude_paths": []
+      },
+      "tags": ["help_to_buy", "tax_relief", "stamp_duty", "lpt"]
+    },
+    {
+      "id": "osi_arcgis_housing",
+      "name": "Tailte Éireann / OSi Open Data - Housing & Zoning",
+      "url": "https://data-osi.opendata.arcgis.com/search?categories=%252Fcategories%252Fhousing%2520and%2520zoning",
+      "ecosystem": "Geographic and planning intelligence",
+      "connector_type": "api_or_dataset",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "arcgis_rest",
+        "api_endpoint": "https://data-osi.opendata.arcgis.com/api/v3",
+        "dataset_type": "arcgis_geospatial"
+      },
+      "tags": ["spatial", "boundaries", "planning_zones", "open_data"]
+    },
+    {
+      "id": "epa_geonetwork",
+      "name": "EPA GeoNetwork Catalogue",
+      "url": "https://gis.epa.ie/geonetwork/srv/eng/catalog.search#/home",
+      "ecosystem": "Geographic and planning intelligence",
+      "connector_type": "api_or_dataset",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "geonetwork_csw",
+        "api_endpoint": "https://gis.epa.ie/geonetwork/srv/eng/csw",
+        "dataset_type": "environmental_constraints"
+      },
+      "tags": ["flooding", "water_quality", "environmental_risk", "zoning_restrictions"]
+    },
+    {
+      "id": "dng_begley",
+      "name": "DNG Begley",
+      "url": "https://dngbegley.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 50,
+        "include_paths": ["/property", "/residential"],
+        "exclude_paths": []
+      },
+      "tags": ["midlands", "athlone", "regional_prices"]
+    },
+    {
+      "id": "daft_ie",
+      "name": "Daft.ie",
+      "url": "https://www.daft.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "targeted_crawl",
+        "max_depth": 2,
+        "page_limit": 100,
+        "include_paths": ["/report", "/property-for-sale/ireland", "/new-homes-for-sale"],
+        "exclude_paths": ["/commercial", "/overseas", "/parking"]
+      },
+      "tags": ["quarterly_reports", "market_index", "asking_prices"]
+    },
+    {
+      "id": "sherry_fitzgerald",
+      "name": "Sherry FitzGerald",
+      "url": "https://www.sherryfitz.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 100,
+        "include_paths": ["/research-and-insights", "/buying-a-home", "/new-homes"],
+        "exclude_paths": []
+      },
+      "tags": ["market_reports", "new_homes", "estate_agent_insights"]
+    },
+    {
+      "id": "savills_ireland",
+      "name": "Savills Ireland",
+      "url": "https://www.savills.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "map_then_crawl",
+        "max_depth": 3,
+        "page_limit": 100,
+        "include_paths": ["/insight-and-opinion", "/find-a-property/residential-property/new-developments"],
+        "exclude_paths": ["/commercial"]
+      },
+      "tags": ["prime_residential", "research_reports", "development_insights"]
+    },
+    {
+      "id": "rea_ireland",
+      "name": "Real Estate Alliance (REA)",
+      "url": "https://www.realestatealliance.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 80,
+        "include_paths": ["/news", "/buying"],
+        "exclude_paths": []
+      },
+      "tags": ["rea_average_house_price_survey", "regional_sentiment"]
+    },
+    {
+      "id": "knight_frank_ireland",
+      "name": "Knight Frank Ireland",
+      "url": "https://www.knightfrank.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 80,
+        "include_paths": ["/research", "/new-homes"],
+        "exclude_paths": []
+      },
+      "tags": ["residential_research", "new_homes"]
+    },
+    {
+      "id": "lisney",
+      "name": "Lisney Sotheby's International Realty",
+      "url": "https://lisney.com/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 80,
+        "include_paths": ["/research", "/residential"],
+        "exclude_paths": []
+      },
+      "tags": ["market_commentary", "buyer_demographics"]
+    },
+    {
+      "id": "myhome_ie",
+      "name": "MyHome.ie",
+      "url": "https://www.myhome.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "targeted_crawl",
+        "max_depth": 2,
+        "page_limit": 100,
+        "include_paths": ["/reports", "/advice", "/residential/new-homes"],
+        "exclude_paths": []
+      },
+      "tags": ["quarterly_market_report", "price_inflation", "asking_prices"]
+    },
+    {
+      "id": "hooke_macdonald",
+      "name": "Hooke & MacDonald",
+      "url": "https://hookemacdonald.ie/",
+      "ecosystem": "Property market intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 80,
+        "include_paths": ["/new-homes", "/research"],
+        "exclude_paths": []
+      },
+      "tags": ["new_homes_specialists", "development_pipeline"]
+    },
+    {
+      "id": "breagh_top20_developers",
+      "name": "Breagh Recruitment - Top 20 Developers",
+      "url": "https://breaghrecruitment.com/blogs/top-20-residential-developers-leading-the-charge-to-solve-ireland-s-housing-crisis",
+      "ecosystem": "Industry and competitive intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "scrape_single",
+        "max_depth": 1,
+        "page_limit": 1
+      },
+      "tags": ["industry_landscape", "top_developers", "supply_capacity"]
+    },
+    {
+      "id": "glenveagh_developments",
+      "name": "Glenveagh Homes",
+      "url": "https://glenveagh.ie/developments",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 3,
+        "page_limit": 120,
+        "include_paths": ["/developments"],
+        "exclude_paths": []
+      },
+      "tags": ["first_time_buyer_homes", "suburban_supply", "phase_launches"]
+    },
+    {
+      "id": "evara_homes",
+      "name": "Evara",
+      "url": "https://evara.ie/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 60,
+        "include_paths": ["/developments", "/projects"],
+        "exclude_paths": []
+      },
+      "tags": ["residential_developments", "new_homes"]
+    },
+    {
+      "id": "cairn_homes",
+      "name": "Cairn Homes",
+      "url": "https://www.cairnhomes.com/new-homes/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 3,
+        "page_limit": 120,
+        "include_paths": ["/new-homes"],
+        "exclude_paths": []
+      },
+      "tags": ["large_scale_residential", "starter_homes", "dublin_commuter"]
+    },
+    {
+      "id": "seven_mills",
+      "name": "Seven Mills (Park Developments)",
+      "url": "https://sevenmills.com/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 50,
+        "include_paths": ["/homes", "/masterplan", "/updates"],
+        "exclude_paths": []
+      },
+      "tags": ["masterplan", "clondalkin", "lucan", "new_town"]
+    },
+    {
+      "id": "oflynn_group",
+      "name": "O'Flynn Group",
+      "url": "https://www.oflynngroup.com/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 60,
+        "include_paths": ["/residential", "/projects"],
+        "exclude_paths": []
+      },
+      "tags": ["cork", "dublin", "residential_pipelines"]
+    },
+    {
+      "id": "ballymore_group",
+      "name": "Ballymore Group",
+      "url": "https://www.ballymoregroup.com/project",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 3,
+        "page_limit": 80,
+        "include_paths": ["/project"],
+        "exclude_paths": []
+      },
+      "tags": ["urban_regeneration", "dublin_docklands", "kildare"]
+    },
+    {
+      "id": "round_tower_capital",
+      "name": "Round Tower Capital",
+      "url": "https://roundtowercapital.ie/our-projects/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 40,
+        "include_paths": ["/our-projects"],
+        "exclude_paths": []
+      },
+      "tags": ["residential_investment", "development_funding"]
+    },
+    {
+      "id": "twinlite",
+      "name": "Twinlite",
+      "url": "https://twinlite.com/#projects",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 50,
+        "include_paths": ["/projects"],
+        "exclude_paths": []
+      },
+      "tags": ["residential", "tyrrelstown", "dublin"]
+    },
+    {
+      "id": "lioncor",
+      "name": "Lioncor",
+      "url": "https://www.lioncor.ie/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 60,
+        "include_paths": ["/developments", "/news"],
+        "exclude_paths": []
+      },
+      "tags": ["sustainable_homes", "new_communities"]
+    },
+    {
+      "id": "dres_properties",
+      "name": "DRES Properties",
+      "url": "https://dres.ie/projects/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 60,
+        "include_paths": ["/projects"],
+        "exclude_paths": []
+      },
+      "tags": ["residential_developments", "starter_homes"]
+    },
+    {
+      "id": "park_developments",
+      "name": "Park Developments",
+      "url": "https://parkdevelopments.ie/residential/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "crawl",
+        "max_depth": 2,
+        "page_limit": 60,
+        "include_paths": ["/residential"],
+        "exclude_paths": []
+      },
+      "tags": ["residential", "clay_farm", "leopardstown"]
+    },
+    {
+      "id": "mcgarrell_reilly",
+      "name": "McGarrell Reilly",
+      "url": "https://www.mcgarrellreilly.ie/residential/homes/search-results/eyJyZXN1bHRfcGFnZSI6InJlc2lkZW50aWFsXC9ob21lc1wvc2VhcmNoLXJlc3VsdHMiLCJjYXRlZ29yeSI6IjEwIn0",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "daily",
+      "discovery": {
+        "mode": "targeted_crawl",
+        "max_depth": 2,
+        "page_limit": 50,
+        "include_paths": ["/residential"],
+        "exclude_paths": []
+      },
+      "tags": ["residential_search", "homes", "meath", "dublin"]
+    }
+  ]
+}
