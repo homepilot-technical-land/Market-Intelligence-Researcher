@@ -2,9 +2,11 @@ import os
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from src.models.research import ResearchObjective, ResearchRun
+from src.models.document import ExtractedDocument
+from src.models.insight import MarketInsight
 from src.storage.repository import IntelligenceRepository
 from src.intelligence.grok_service import GrokService
 
@@ -14,8 +16,8 @@ class ObjectiveResearchEngine:
     """Objective-Driven Research Engine.
     
     Conducts inside-out empirical investigations into market phenomena,
-    benchmarking market data against HomePilot's 5 audience personas,
-    decision-driven needs, and systemic bottlenecks.
+    benchmarking real-time feed signals against HomePilot's 5 audience personas,
+    decision-driven needs, dynamic segments, and systemic bottlenecks.
     """
 
     def __init__(self, repository: Optional[IntelligenceRepository] = None, grok_service: Optional[GrokService] = None):
@@ -30,10 +32,73 @@ class ObjectiveResearchEngine:
                 return json.load(f)
         return {}
 
+    def benchmark_feed_against_personas(
+        self, 
+        insight: MarketInsight, 
+        doc: Optional[ExtractedDocument] = None,
+        dynamic_personas: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Continuous Market-to-Persona Research Benchmarking.
+        
+        Compares an incoming feed signal/insight against the 5 core marketing personas
+        and any discovered dynamic segments. Evaluates friction shifts, emotional transitions,
+        and allocates 3 R's validation duties (bot vs. human operator).
+        """
+        all_segments = list(self.personas.get("audience_segments", []))
+        if dynamic_personas:
+            for dp in dynamic_personas:
+                all_segments.append({
+                    "segment_id": dp.get("segment_id", "dyn_seg"),
+                    "name": dp.get("name", "Dynamic Segment"),
+                    "demographics": {"age": "27-45", "income": "€50k-€110k"},
+                    "pain_point": dp.get("core_market_friction", "Evolving market constraint"),
+                    "emotional_state": "Constrained by shifting market rules",
+                    "primary_hook": "Dynamic positioning needed"
+                })
+
+        category = insight.primary_category
+        benchmarks = []
+
+        for seg in all_segments:
+            seg_id = seg.get("segment_id", "")
+            # Compute heuristic relevance to this segment based on category & questions
+            alignment_score = 50
+            if category == "affordability_schemes" and seg_id in ["seg_1_frustrated_ftb", "seg_2_mortgage_ready_optimiser", "dyn_seg_commuter_cap_straddler"]:
+                alignment_score = 92
+            elif category == "transaction_journey" and seg_id in ["seg_3_homeownership_planner"]:
+                alignment_score = 95
+            elif category == "post_purchase_planning" and seg_id in ["seg_4_new_homeowner", "seg_5_future_wealth_builder"]:
+                alignment_score = 88
+            elif category in ["cost_of_living", "macroprudential_rules"]:
+                alignment_score = 85
+
+            benchmarks.append({
+                "segment_id": seg_id,
+                "segment_name": seg.get("name"),
+                "alignment_score": alignment_score,
+                "current_friction": seg.get("pain_point"),
+                "feed_impact_detected": f"Feed signal directly addresses '{category}' constraints.",
+                "value_stream_moment_of_truth": "Comparing real cost of ownership vs borrow ceiling",
+                "three_rs_duty_allocation": {
+                    "role_bot": "Extract statutory numbers, compute cap deltas, track price creep",
+                    "role_human": "2-Person Operator validation: verify solicitor/local authority terms if confidence < 85",
+                    "rule": "Flag anomaly if commuter launch price exceeds county scheme threshold by > €10k",
+                    "route": "Feed -> Diff Engine -> Grok Synthesis -> Operator Review Queue -> Active Persona Profile"
+                }
+            })
+
+        return {
+            "insight_id": insight.insight_id,
+            "category": category,
+            "composite_score": insight.scoring.composite_score,
+            "benchmarks": benchmarks,
+            "benchmarked_at": datetime.now(timezone.utc).isoformat()
+        }
+
     def execute_research_run(self, objective: ResearchObjective) -> ResearchRun:
         """Executes an objective research run, synthesizing evidence against audience segments."""
         logger.info(f"Executing objective-driven research for: '{objective.title}'")
-        run_id = f"run_{objective.objective_id}_{int(datetime.utcnow().timestamp())}"
+        run_id = f"run_{objective.objective_id}_{int(datetime.now(timezone.utc).timestamp())}"
 
         # 1. Identify relevant sources from registered repository
         all_sources = self.repo.list_sources()
@@ -58,14 +123,14 @@ class ObjectiveResearchEngine:
         report_lines = [
             f"# Objective Research Brief: {objective.title}",
             f"**Objective ID:** `{objective.objective_id}` | **Strategic Dimension:** `{objective.strategic_dimension}`",
-            f"**Date Executed:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"**Date Executed:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
             "",
             "## 1. Executive Research Question & Scope",
             f"**Core Problem Investigated:** {objective.title}",
             "**Key Investigation Lines:**",
             "\n".join([f"- {q}" for q in objective.core_questions]),
             "",
-            "## 2. Audience Persona Impact Analysis",
+            "## 2. Audience Persona Impact Analysis & Friction Benchmarks",
         ]
 
         for seg in matched_segments:
@@ -75,6 +140,10 @@ class ObjectiveResearchEngine:
                 f"- **Observed Market Barrier:** {seg['pain_point']}",
                 f"- **Emotional State:** {seg['emotional_state']}",
                 f"- **Primary Strategic Hook:** *\"{seg['primary_hook']}\"*",
+                "- **3 R's Duty Allocation:**",
+                "  - *Bot Duty:* Automatically pull statutory county price caps & track live asking prices.",
+                "  - *Human Operator Duty:* 2-Person Operator validation of legal conveyancing caveats.",
+                "  - *Route:* Ingestion -> Normalisation -> Diff Detection -> Operator Review Gate -> Strategy.",
                 ""
             ])
 
@@ -104,7 +173,7 @@ class ObjectiveResearchEngine:
             recommended_new_sources=["cand_rtb_rent_index", "cand_cso_housing"],
             consolidated_report_markdown=report_markdown,
             status="completed",
-            executed_at=datetime.utcnow()
+            executed_at=datetime.now(timezone.utc)
         )
 
         self.repo.record_research_run(research_run)
