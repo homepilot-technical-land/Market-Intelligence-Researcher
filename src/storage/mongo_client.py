@@ -1,6 +1,9 @@
 import os
 import logging
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.database import Database
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
