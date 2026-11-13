@@ -323,6 +323,46 @@ def main():
         print("\n--- Human Validation Gate (The 3 R's Governance) ---")
         print(f"Requires Human Validation: {'YES (Operator Signoff Mandated)' if strat.requires_human_validation else 'NO (Autonomous Bot Response)'}")
         print(f"Validation Rationale: {strat.validation_rationale}")
+
+        # Persist structured intelligence and bot communication assets into MongoDB
+        import uuid
+        from src.models.campaign import CampaignOpportunity
+        from src.models.asset import GeneratedAsset, AssetPayload
+
+        campaign_id = f"camp_x_{uuid.uuid4().hex[:8]}"
+        campaign = CampaignOpportunity(
+            campaign_id=campaign_id,
+            theme_title=f"X Strategic Intelligence: {strat.topic}",
+            strategic_dimension="financial_confidence",
+            target_segment="seg_1_frustrated_ftb",
+            central_customer_problem=strat.buyer_pain_points[0] if strat.buyer_pain_points else strat.topic,
+            homepilot_positioning_hook=strat.homepilot_product_alignment[0] if strat.homepilot_product_alignment else "HomePilot Decision Tools",
+            status="ready_for_review" if strat.requires_human_validation else "approved"
+        )
+        pipeline.repo.save_campaign(campaign)
+
+        saved_asset_ids = []
+        for idx, hook in enumerate(strat.proposed_bot_communications, 1):
+            asset_id = f"asset_x_{uuid.uuid4().hex[:8]}"
+            asset = GeneratedAsset(
+                asset_id=asset_id,
+                campaign_id=campaign_id,
+                asset_type="x_thread",
+                content_payload=AssetPayload(
+                    headline=hook,
+                    copy_body=f"Discourse Context: {strat.analysis}\n\nProposed Bot Hook: {hook}",
+                    evidence_citations=[f"https://x.com/search?q={strat.topic.replace(' ', '+')}"]
+                ),
+                review_status="pending_review",
+                reviewer_notes=f"Synthesized via xAI Grok. Requires dual operator signoff under Rule B-04. Alignment: {', '.join(strat.homepilot_product_alignment[:2])}"
+            )
+            pipeline.repo.save_asset(asset)
+            saved_asset_ids.append(asset_id)
+
+        print(f"\nPersisted to MongoDB Database ('homepilot_intelligence'):")
+        print(f"  • Campaign Opportunity: {campaign_id} (Collection: 'campaign_opportunities')")
+        print(f"  • Content Assets: {len(saved_asset_ids)} draft X bot threads (Collection: 'content_assets')")
+        print(f"  • Operator Status: PENDING_OPERATOR_APPROVAL (Gated under Rule B-04)")
         print("===================================================================\n")
 
     else:
