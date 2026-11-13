@@ -4,6 +4,10 @@
 import sys
 import argparse
 import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from src.pipeline.runner import MarketIntelligencePipeline
 from src.storage.repository import IntelligenceRepository
 from src.intelligence.research_engine import ObjectiveResearchEngine
@@ -59,6 +63,21 @@ def main():
 
     # Command: check-connections
     subparsers.add_parser("check-connections", help="Check live connectivity for MongoDB, Firecrawl API, xAI API, and Budget limits")
+
+    # Command: scrape-url (Direct Firecrawl Scrape)
+    scrape_parser = subparsers.add_parser("scrape-url", help="Scrape a URL using Firecrawl clean markdown extraction")
+    scrape_parser.add_argument("--url", required=True, help="URL to scrape")
+    scrape_parser.add_argument("--wait", type=int, default=1000, help="Wait time in ms before scraping")
+
+    # Command: search (Firecrawl Web Search)
+    search_parser = subparsers.add_parser("search", help="Execute web search via Firecrawl")
+    search_parser.add_argument("--query", required=True, help="Search query")
+    search_parser.add_argument("--limit", type=int, default=5, help="Number of results")
+
+    # Command: search-then-scrape (Two-step search then scrape)
+    sts_parser = subparsers.add_parser("search-then-scrape", help="Execute the Firecrawl Search-Then-Scrape two-step workflow")
+    sts_parser.add_argument("--query", required=True, help="Search query")
+    sts_parser.add_argument("--limit", type=int, default=3, help="Number of top candidates to scrape")
 
     args = parser.parse_args()
 
@@ -208,6 +227,41 @@ def main():
         print(f"xAI Spend: ${burn.xai_cost_usd:.2f} / ${burn.xai_budget_limit_usd:.2f} USD")
         print(f"Cache Free Passes: {burn.pages_processed_free_hash} pages (Saved ~${burn.estimated_dollars_saved_by_cache:.2f})")
         print("========================================================\n")
+
+    elif args.command == "scrape-url":
+        print(f"\nScraping URL via Firecrawl: {args.url} (Wait: {args.wait}ms)")
+        actions = [{"type": "wait", "milliseconds": args.wait}] if args.wait > 0 else None
+        res = pipeline.connector.scrape_url(
+            url=args.url,
+            only_main_content=True,
+            remove_base64_images=True,
+            actions=actions
+        )
+        print(f"\nTitle: {res.get('title')}")
+        print(f"Status Code: {res.get('status')}")
+        print(f"Extracted Markdown Length: {len(res.get('markdown', ''))} characters")
+        print("-" * 60)
+        print(res.get("markdown", "")[:600] + ("..." if len(res.get("markdown", "")) > 600 else ""))
+        print("-" * 60)
+
+    elif args.command == "search":
+        print(f"\nExecuting Firecrawl Search for: '{args.query}' (Limit: {args.limit})")
+        results = pipeline.connector.search(query=args.query, limit=args.limit)
+        print(f"Discovered {len(results)} results:\n")
+        for i, item in enumerate(results, 1):
+            print(f"[{i}] {item.get('title')}")
+            print(f"    URL: {item.get('url')}")
+            print(f"    Snippet: {item.get('description', '')[:120]}...\n")
+
+    elif args.command == "search-then-scrape":
+        print(f"\nExecuting Firecrawl Search-Then-Scrape Pattern for: '{args.query}' (Scrape Limit: {args.limit})")
+        results = pipeline.connector.search_then_scrape(query=args.query, scrape_limit=args.limit)
+        print(f"Successfully scraped {len(results)} pages:\n")
+        for i, item in enumerate(results, 1):
+            print(f"[{i}] {item.get('title')}")
+            print(f"    URL: {item.get('url')}")
+            print(f"    Content Length: {len(item.get('markdown', ''))} chars")
+            print(f"    Preview: {item.get('markdown', '')[:180].strip()}...\n")
 
     else:
         parser.print_help()
