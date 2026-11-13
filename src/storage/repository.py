@@ -147,6 +147,18 @@ class IntelligenceRepository:
         self._store["intelligence_findings"][insight.insight_id] = data
         return True
 
+    def record_insight(self, insight: MarketInsight) -> bool:
+        return self.save_insight(insight)
+
+    def get_insight(self, insight_id: str) -> Optional[MarketInsight]:
+        if self._connected and self.db_manager.db is not None:
+            doc = self.db_manager.db.intelligence_findings.find_one({"insight_id": insight_id})
+            if doc:
+                doc.pop("_id", None)
+                return MarketInsight(**doc)
+        data = self._store["intelligence_findings"].get(insight_id)
+        return MarketInsight(**data) if data else None
+
     # --- 10. evidence_records ---
     def add_evidence(self, evidence: SourceEvidence) -> bool:
         data = evidence.model_dump()
