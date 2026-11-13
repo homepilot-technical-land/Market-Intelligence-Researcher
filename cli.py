@@ -84,6 +84,10 @@ def main():
     fb_parser.add_argument("--query", default="First Time Buyers Ireland", help="Community topic query")
     fb_parser.add_argument("--limit", type=int, default=3, help="Number of communities to discover")
 
+    # Command: discover-authorities (Dynamic Authority Discovery using Taxonomy Queries)
+    auth_parser = subparsers.add_parser("discover-authorities", help="Discover new authoritative Irish sources similar to the 35 seeds using dynamic taxonomy queries")
+    auth_parser.add_argument("--county", default="Meath", help="Target county focus")
+
     args = parser.parse_args()
 
     pipeline = MarketIntelligencePipeline()
@@ -277,6 +281,19 @@ def main():
             print(f"    URL: {item.get('url')}")
             print(f"    Content Length: {len(item.get('markdown', ''))} chars")
             print(f"    Preview: {item.get('markdown', '')[:180].strip()}...\n")
+
+    elif args.command == "discover-authorities":
+        from src.intelligence.authority_discovery import AuthoritySourceDiscoveryEngine
+        pipeline.load_sources_from_registry()
+        discovery = AuthoritySourceDiscoveryEngine(repository=pipeline.repo)
+        print(f"\nExecuting Dynamic Authority Discovery via Firecrawl for '{args.county}'...")
+        candidates = discovery.discover_sources_via_firecrawl(connector=pipeline.connector, county=args.county)
+        print(f"Discovered {len(candidates)} new candidate sources for operator review:\n")
+        for i, c in enumerate(candidates, 1):
+            print(f"[{i}] {c.name} (Authority Score: {c.authority_score:.1f})")
+            print(f"    URL: {c.root_url}")
+            print(f"    Publisher: {c.publisher_identity}")
+            print(f"    Justification: {c.justification[:120]}...\n")
 
     else:
         parser.print_help()
