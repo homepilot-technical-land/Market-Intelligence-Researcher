@@ -129,6 +129,8 @@ flowchart TD
     - *Phase 5 completion report: Zero-trust PII scrubbing, RFC 7807 middleware, autonomous scheduling daemon, Docker/CI-CD packaging, and turnkey MongoDB Atlas readiness.*
 30. [homepilot_grokbot_desktop_and_mobile_synchronization_spec.md](homepilot_grokbot_desktop_and_mobile_synchronization_spec.md)
     - *GrokBot Desktop & Mobile Synchronization: Master persona prompt, 5 operational routines, and zero-config web & tunnel setup guide.*
+31. [homepilot_mcp_and_api_builder_connection_guide.md](homepilot_mcp_and_api_builder_connection_guide.md)
+    - *MCP Server vs. API Builder Integration Guide: Native Model Context Protocol setup, 6 exposed tools, dual stdio/SSE transports, and desktop config.*
 
 ---
 
@@ -136,6 +138,6 @@ flowchart TD
 
 ```bash
 source .venv/bin/activate && pytest -q
-======================= 61 passed in 48.67s =======================
+======================= 68 passed in 51.20s =======================
 ```
-All 61 unit and integration tests across the entire codebase are 100% green.
+All 68 unit, integration, and MCP tests across the entire codebase are 100% green.

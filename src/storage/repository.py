@@ -132,6 +132,15 @@ class IntelligenceRepository:
         self._store["research_objectives"][obj.objective_id] = data
         return True
 
+    def get_research_objective(self, objective_id: str) -> Optional[ResearchObjective]:
+        if self._connected and self.db_manager.db is not None:
+            doc = self.db_manager.db.research_objectives.find_one({"objective_id": objective_id})
+            if doc:
+                doc.pop("_id", None)
+                return ResearchObjective(**doc)
+        data = self._store["research_objectives"].get(objective_id)
+        return ResearchObjective(**data) if data else None
+
     def record_research_run(self, run: ResearchRun) -> bool:
         data = run.model_dump()
         if self._connected and self.db_manager.db is not None:

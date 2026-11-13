@@ -47,7 +47,7 @@ def get_latest_daily_briefing(county: str = "Meath") -> Dict[str, Any]:
     Args:
         county: Irish county name (e.g. 'Meath', 'Kildare', 'Wicklow').
     """
-    briefing = daily_gen.generate_briefing(county=county)
+    briefing = daily_gen.generate_morning_briefing(county_focus=county)
     return briefing.model_dump()
 
 @server.tool()
@@ -127,6 +127,46 @@ def submit_campaign_blueprint(
         "message": "Asset submitted to Dual Operator Review Queue. Awaiting sign-off under Rule B-04."
     }
 
+@server.tool()
+def ask_research_engine(question: str, county: Optional[str] = "Meath") -> Dict[str, Any]:
+    """Ask the HomePilot Market Intelligence Researcher a direct analytical question.
+    The engine queries internal MongoDB evidence, live PPR pricing, and CSO inflation indicators to return a grounded assessment.
+    
+    Args:
+        question: The analytical question or hypothesis to evaluate.
+        county: Optional target Irish county (default 'Meath').
+    """
+    affordability = ppr_conn.calculate_county_affordability_benchmarks(county=county or "Meath")
+    cso_data = cso_conn.fetch_housing_market_indicators()
+    evidence = repo.list_evidence(limit=3)
+
+    return {
+        "question": question,
+        "county": county,
+        "verified_market_context": {
+            "ppr_benchmarks": affordability,
+            "cso_macro_indicators": cso_data,
+            "sample_primary_evidence": [e.model_dump() for e in evidence]
+        },
+        "engine_guidance": "Use the verified market context above to answer. Adhere strictly to Rule B-02 (double citations) and Rule B-04 (dual human operator review)."
+    }
+
 if __name__ == "__main__":
-    # Default stdio transport for local desktop MCP clients
-    server.run(transport="stdio")
+    import argparse
+    parser = argparse.ArgumentParser(description="HomePilot Market Intelligence MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse", "streamable-http"],
+        default="stdio",
+        help="MCP transport protocol (stdio for local desktop, sse for remote/mobile)"
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="Host interface for SSE transport")
+    parser.add_argument("--port", type=int, default=8001, help="Port for SSE transport (default 8001)")
+    args = parser.parse_args()
+
+    if args.transport == "stdio":
+        server.run(transport="stdio")
+    elif args.transport == "sse":
+        server.run(transport="sse", host=args.host, port=args.port)
+    elif args.transport == "streamable-http":
+        server.run(transport="streamable-http", host=args.host, port=args.port)
