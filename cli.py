@@ -57,6 +57,9 @@ def main():
     reject_parser = subparsers.add_parser("reject-review", help="Reject/archive an insight in the Operator Review Queue")
     reject_parser.add_argument("--id", required=True, help="Task ID or Insight ID to reject")
 
+    # Command: check-connections
+    subparsers.add_parser("check-connections", help="Check live connectivity for MongoDB, Firecrawl API, xAI API, and Budget limits")
+
     args = parser.parse_args()
 
     pipeline = MarketIntelligencePipeline()
@@ -169,6 +172,42 @@ def main():
 
     elif args.command == "reject-review":
         print(f"Rejected review task '{args.id}'")
+
+    elif args.command == "check-connections":
+        from src.coordination.budget_tracker import BudgetGovernanceTracker
+        from src.intelligence.grok_service import GrokService
+        print("\n=== HomePilot Intelligence Pipeline Diagnostic Check ===")
+        
+        # 1. MongoDB Status
+        mongo_ok = pipeline.repo._connected and pipeline.repo.db_manager.db is not None
+        if mongo_ok:
+            print(f"✓ MongoDB: CONNECTED (Database: '{pipeline.repo.db_manager.db_name}' on {pipeline.repo.db_manager.uri})")
+        else:
+            print(f"! MongoDB: OFFLINE (Operating with in-memory fallback - set MONGODB_URI in .env to connect live)")
+
+        # 2. Firecrawl API Status
+        fc_configured = pipeline.connector.is_configured()
+        if fc_configured:
+            print(f"✓ Firecrawl API: CONFIGURED (Key: {pipeline.connector.api_key[:8]}..., Endpoint: {pipeline.connector.base_url})")
+        else:
+            print(f"! Firecrawl API: NOT CONFIGURED (Using simulation mode - set FIRECRAWL_API_KEY in .env)")
+
+        # 3. xAI Grok API Status
+        grok = GrokService()
+        xai_configured = grok.is_configured()
+        if xai_configured:
+            print(f"✓ xAI Grok API: CONFIGURED (Key: {grok.api_key[:8]}..., Model: {grok.model})")
+        else:
+            print(f"! xAI Grok API: NOT CONFIGURED (Using simulation mode - set XAI_API_KEY in .env)")
+
+        # 4. Budget Burn Status
+        tracker = BudgetGovernanceTracker(repository=pipeline.repo)
+        burn = tracker.get_current_burn()
+        print(f"\n--- Monthly Budget & Quota Tracking ({burn.billing_month}) ---")
+        print(f"Firecrawl Credits: {burn.firecrawl_credits_used} / {burn.firecrawl_credit_limit} used")
+        print(f"xAI Spend: ${burn.xai_cost_usd:.2f} / ${burn.xai_budget_limit_usd:.2f} USD")
+        print(f"Cache Free Passes: {burn.pages_processed_free_hash} pages (Saved ~${burn.estimated_dollars_saved_by_cache:.2f})")
+        print("========================================================\n")
 
     else:
         parser.print_help()
