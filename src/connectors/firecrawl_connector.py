@@ -166,8 +166,12 @@ For full details contact the relevant authority."""
         """Maps a target domain using Firecrawl Map endpoint or deterministic fallback."""
         if self.is_configured():
             try:
+                from urllib.parse import urlparse
+                parsed = urlparse(url)
+                origin_url = f"{parsed.scheme}://{parsed.netloc}" if parsed.netloc else url
+
                 headers = self._get_headers()
-                payload = {"url": url, "limit": limit, "sitemap": "include"}
+                payload = {"url": origin_url, "limit": limit}
                 response = self.client.post(f"{self.base_url}/v1/map", json=payload, headers=headers)
                 response.raise_for_status()
                 data = response.json()
