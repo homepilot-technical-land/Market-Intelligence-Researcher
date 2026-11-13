@@ -8,6 +8,8 @@ from src.pipeline.runner import MarketIntelligencePipeline
 from src.intelligence.authority_discovery import AuthoritySourceDiscoveryEngine
 from src.intelligence.grok_service import GrokService
 from src.models import ResearchObjective
+from src.mcp_server import server as mcp_server
+from mcp.server.transport_security import TransportSecuritySettings
 
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
@@ -23,6 +25,14 @@ pipeline = MarketIntelligencePipeline(repository=repo)
 authority_engine = AuthoritySourceDiscoveryEngine(repository=repo)
 grok_service = GrokService()
 
+# Configure MCP Server with tunnel/cloud security settings
+mcp_security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=False,
+    allowed_hosts=["*"],
+    allowed_origins=["*"]
+)
+mcp_app = mcp_server.streamable_http_app(transport_security=mcp_security, host="0.0.0.0")
+
 def bootstrap_data():
     if not repo.list_sources():
         pipeline.load_sources_from_registry()
@@ -32,7 +42,12 @@ def bootstrap_data():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     bootstrap_data()
-    yield
+    session_mgr = getattr(mcp_server._lowlevel_server, "_session_manager", None)
+    if session_mgr and not getattr(session_mgr, "_has_started", False):
+        async with session_mgr.run():
+            yield
+    else:
+        yield
 
 app = FastAPI(
     title="HomePilot Market Intelligence Service",
@@ -48,6 +63,16 @@ app.add_exception_handler(RFC7807Exception, rfc7807_custom_exception_handler)
 
 # Also ensure bootstrap for testing
 bootstrap_data()
+
+@app.get("/")
+@app.head("/")
+def root_health():
+    """Root health probe for Cloud host probes (e.g. Render HEAD /)."""
+    return {
+        "status": "healthy",
+        "service": "homepilot-market-intelligence",
+        "mcp_endpoint": "/mcp"
+    }
 
 @app.get("/health")
 def health_check():
@@ -262,3 +287,6 @@ def get_chat_interface():
     </body>
     </html>
     """
+
+# Mount the MCP server routes (e.g. /mcp for Streamable HTTP)
+app.mount("", mcp_app)
