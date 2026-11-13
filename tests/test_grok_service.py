@@ -31,10 +31,20 @@ def test_grok_service_x_sentiment_analysis_fallback():
     service = GrokService(api_key="")
     res = service.analyze_x_platform_sentiment(topic="Irish housing first time buyers")
     assert isinstance(res, GrokResponse)
-    assert "Simulated X Platform Sentiment" in res.analysis
+    assert "Simulated Strategic X Intelligence" in res.analysis
     assert len(res.key_findings) > 0
     assert len(res.strategic_implications) > 0
     assert res.cost_usd > 0.0
+
+def test_grok_service_strategic_x_intelligence_fallback():
+    service = GrokService(api_key="")
+    strat = service.synthesize_strategic_x_intelligence(topic="First time buyers commuter towns")
+    assert strat.topic == "First time buyers commuter towns"
+    assert len(strat.buyer_pain_points) > 0
+    assert len(strat.proposed_bot_communications) > 0
+    assert len(strat.homepilot_product_alignment) > 0
+    assert strat.requires_human_validation is True
+    assert "rule b-04" in strat.validation_rationale.lower()
 
 def test_grok_service_budget_guard_blocks_overage():
     tracker = BudgetGovernanceTracker()

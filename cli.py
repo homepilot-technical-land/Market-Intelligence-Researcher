@@ -304,15 +304,26 @@ def main():
         from src.coordination.budget_tracker import BudgetGovernanceTracker
         tracker = BudgetGovernanceTracker(repository=pipeline.repo, state_file="config/budget_burn_state.json")
         grok = GrokService(budget_tracker=tracker)
-        print(f"\nSynthesizing X Platform Sentiment via xAI Grok for topic: '{args.topic}'...")
-        res = grok.analyze_x_platform_sentiment(topic=args.topic)
-        print(f"\n--- Grok Real-Time X Sentiment Breakdown ---")
-        print(f"Tokens: {res.prompt_tokens} prompt + {res.completion_tokens} completion (Cost: ${res.cost_usd:.5f} USD)")
-        print("-" * 60)
-        print(res.analysis)
-        print("-" * 60)
-        print("Key Findings:", res.key_findings)
-        print("Strategic Implications:", res.strategic_implications)
+        print(f"\nSynthesizing X Platform Intelligence & Future Bot Communications for topic: '{args.topic}'...")
+        strat = grok.synthesize_strategic_x_intelligence(topic=args.topic)
+        print(f"\n=== xAI Grok Strategic X Intelligence & Bot Communication Plan ===")
+        print(f"Topic: {strat.topic}")
+        print(f"Token Accounting: {strat.prompt_tokens} prompt + {strat.completion_tokens} completion (Cost: ${strat.cost_usd:.5f} USD)")
+        print("\n--- Real-Time Discourse & Sentiment Analysis ---")
+        print(strat.analysis)
+        print("\n--- Top Buyer Pain Points & Anxieties on X ---")
+        for i, p in enumerate(strat.buyer_pain_points, 1):
+            print(f"[{i}] {p}")
+        print("\n--- Future Bot Communication Hooks (Campaign & Educational Angles) ---")
+        for i, hook in enumerate(strat.proposed_bot_communications, 1):
+            print(f"[{i}] {hook}")
+        print("\n--- HomePilot Product Capability Alignment ---")
+        for i, prod in enumerate(strat.homepilot_product_alignment, 1):
+            print(f"[{i}] {prod}")
+        print("\n--- Human Validation Gate (The 3 R's Governance) ---")
+        print(f"Requires Human Validation: {'YES (Operator Signoff Mandated)' if strat.requires_human_validation else 'NO (Autonomous Bot Response)'}")
+        print(f"Validation Rationale: {strat.validation_rationale}")
+        print("===================================================================\n")
 
     else:
         parser.print_help()
