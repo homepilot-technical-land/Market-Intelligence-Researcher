@@ -89,6 +89,8 @@ flowchart TD
     - *Audit of Phases 1 & 2 and detailed requirements for Phase 3 operationalization.*
 16. [homepilot_phase3_execution_and_completion_report.md](homepilot_phase3_execution_and_completion_report.md)
     - *Phase 3 execution report: Public dataset connectors (PPR, CSO PxStat API, RTB), automated daily morning briefing generator (07:00 UTC), and interactive operator review CLI.*
+17. [homepilot_api_connections_mongodb_and_operator_handbook.md](homepilot_api_connections_mongodb_and_operator_handbook.md)
+    - *Live API connections handbook (Firecrawl & xAI), MongoDB 14-collection architecture, and explicit division of responsibilities between human operators and the automated assistant.*
 
 ---
 
