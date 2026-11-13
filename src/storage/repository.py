@@ -159,6 +159,20 @@ class IntelligenceRepository:
         data = self._store["intelligence_findings"].get(insight_id)
         return MarketInsight(**data) if data else None
 
+    def list_insights(self, min_composite_score: float = 0.0) -> List[MarketInsight]:
+        if self._connected and self.db_manager.db is not None:
+            query = {"scoring.composite_score": {"$gte": min_composite_score}} if min_composite_score > 0 else {}
+            cursor = self.db_manager.db.intelligence_findings.find(query)
+            results = []
+            for doc in cursor:
+                doc.pop("_id", None)
+                results.append(MarketInsight(**doc))
+            return results
+        return [
+            MarketInsight(**v) for v in self._store["intelligence_findings"].values()
+            if v.get("scoring", {}).get("composite_score", 0.0) >= min_composite_score
+        ]
+
     # --- 10. evidence_records ---
     def add_evidence(self, evidence: SourceEvidence) -> bool:
         data = evidence.model_dump()
@@ -166,6 +180,25 @@ class IntelligenceRepository:
             self.db_manager.db.evidence_records.insert_one(data)
         self._store["evidence_records"][evidence.evidence_id] = data
         return True
+
+    def get_evidence(self, evidence_id: str) -> Optional[SourceEvidence]:
+        if self._connected and self.db_manager.db is not None:
+            doc = self.db_manager.db.evidence_records.find_one({"evidence_id": evidence_id})
+            if doc:
+                doc.pop("_id", None)
+                return SourceEvidence(**doc)
+        data = self._store["evidence_records"].get(evidence_id)
+        return SourceEvidence(**data) if data else None
+
+    def list_evidence(self, limit: int = 100) -> List[SourceEvidence]:
+        if self._connected and self.db_manager.db is not None:
+            cursor = self.db_manager.db.evidence_records.find().limit(limit)
+            results = []
+            for doc in cursor:
+                doc.pop("_id", None)
+                results.append(SourceEvidence(**doc))
+            return results
+        return [SourceEvidence(**v) for v in list(self._store["evidence_records"].values())[:limit]]
 
     # --- 11. campaign_opportunities ---
     def save_campaign(self, campaign: CampaignOpportunity) -> bool:
@@ -175,6 +208,29 @@ class IntelligenceRepository:
         self._store["campaign_opportunities"][campaign.campaign_id] = data
         return True
 
+    def get_campaign(self, campaign_id: str) -> Optional[CampaignOpportunity]:
+        if self._connected and self.db_manager.db is not None:
+            doc = self.db_manager.db.campaign_opportunities.find_one({"campaign_id": campaign_id})
+            if doc:
+                doc.pop("_id", None)
+                return CampaignOpportunity(**doc)
+        data = self._store["campaign_opportunities"].get(campaign_id)
+        return CampaignOpportunity(**data) if data else None
+
+    def list_campaigns(self, status: Optional[str] = None) -> List[CampaignOpportunity]:
+        if self._connected and self.db_manager.db is not None:
+            query = {"status": status} if status else {}
+            cursor = self.db_manager.db.campaign_opportunities.find(query)
+            results = []
+            for doc in cursor:
+                doc.pop("_id", None)
+                results.append(CampaignOpportunity(**doc))
+            return results
+        return [
+            CampaignOpportunity(**v) for v in self._store["campaign_opportunities"].values()
+            if not status or v.get("status") == status
+        ]
+
     # --- 12. content_assets ---
     def save_asset(self, asset: GeneratedAsset) -> bool:
         data = asset.model_dump()
@@ -182,6 +238,29 @@ class IntelligenceRepository:
             self.db_manager.db.content_assets.update_one({"asset_id": asset.asset_id}, {"$set": data}, upsert=True)
         self._store["content_assets"][asset.asset_id] = data
         return True
+
+    def get_asset(self, asset_id: str) -> Optional[GeneratedAsset]:
+        if self._connected and self.db_manager.db is not None:
+            doc = self.db_manager.db.content_assets.find_one({"asset_id": asset_id})
+            if doc:
+                doc.pop("_id", None)
+                return GeneratedAsset(**doc)
+        data = self._store["content_assets"].get(asset_id)
+        return GeneratedAsset(**data) if data else None
+
+    def list_assets(self, review_statuses: Optional[List[str]] = None) -> List[GeneratedAsset]:
+        if self._connected and self.db_manager.db is not None:
+            query = {"review_status": {"$in": review_statuses}} if review_statuses else {}
+            cursor = self.db_manager.db.content_assets.find(query)
+            results = []
+            for doc in cursor:
+                doc.pop("_id", None)
+                results.append(GeneratedAsset(**doc))
+            return results
+        return [
+            GeneratedAsset(**v) for v in self._store["content_assets"].values()
+            if not review_statuses or v.get("review_status") in review_statuses
+        ]
 
     # --- 13. agent_runs ---
     def log_agent_run(self, run: AgentRun) -> bool:

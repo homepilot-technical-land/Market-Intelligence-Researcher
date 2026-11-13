@@ -33,21 +33,7 @@ class OperatorDialogueEngine:
 
     def list_pending_assets(self) -> List[GeneratedAsset]:
         """Lists all assets in MongoDB waiting for operator review."""
-        if self.repo._connected and self.repo.db_manager.db is not None:
-            cursor = self.repo.db_manager.db.content_assets.find(
-                {"review_status": {"$in": ["pending_review", "operator_1_approved"]}}
-            )
-            assets = []
-            for doc in cursor:
-                doc.pop("_id", None)
-                assets.append(GeneratedAsset(**doc))
-            return assets
-        # In-memory fallback
-        return [
-            GeneratedAsset(**v)
-            for v in self.repo._store["content_assets"].values()
-            if v.get("review_status") in ["pending_review", "operator_1_approved"]
-        ]
+        return self.repo.list_assets(review_statuses=["pending_review", "operator_1_approved"])
 
     def revise_asset_with_grok(
         self,
@@ -156,13 +142,7 @@ class OperatorDialogueEngine:
         return asset
 
     def _fetch_asset(self, asset_id: str) -> Optional[GeneratedAsset]:
-        if self.repo._connected and self.repo.db_manager.db is not None:
-            doc = self.repo.db_manager.db.content_assets.find_one({"asset_id": asset_id})
-            if doc:
-                doc.pop("_id", None)
-                return GeneratedAsset(**doc)
-        data = self.repo._store["content_assets"].get(asset_id)
-        return GeneratedAsset(**data) if data else None
+        return self.repo.get_asset(asset_id)
 
     def _call_grok_rewrite(self, prompt: str) -> str:
         import httpx

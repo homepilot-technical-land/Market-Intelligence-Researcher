@@ -50,14 +50,9 @@ class DailyBriefingGenerator:
         ppr_benchmarks = PropertyPriceRegisterConnector.calculate_county_affordability_benchmarks(county=county_focus)
         rent_comparison = RTBRentIndexConnector.calculate_buy_vs_rent_differential(county=county_focus)
 
-        # 2. Query high-priority insights from store
-        # In a 2-person internal setup, fetch top active insights
-        recent_insights = []
-        for v in self.repo._store.get("intelligence_findings", {}).values():
-            if v.get("scoring", {}).get("composite_score", 0) >= 70.0:
-                recent_insights.append(v)
-
-        insight_titles = [i.get("doc_id", "Insight") for i in recent_insights][:5]
+        # 2. Query high-priority insights from store (MongoDB or in-memory fallback)
+        recent_insights = self.repo.list_insights(min_composite_score=70.0)
+        insight_titles = [i.doc_id for i in recent_insights][:5]
         if not insight_titles:
             insight_titles = [
                 "Gov.ie First Home Scheme Price Ceilings Revised",
