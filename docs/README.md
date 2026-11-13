@@ -123,6 +123,8 @@ flowchart TD
     - *Clear separation of roles: the Market Research Intelligence Engine owns semantic wiring & relationships, while GrokBot (with human validation) creates the brief.*
 27. [homepilot_end_to_end_system_harmony_and_engineering_audit.md](homepilot_end_to_end_system_harmony_and_engineering_audit.md)
     - *Comprehensive engineering audit verifying kickoff charter alignment, elimination of dormant pathways, unified repository data access, and hermetic test database isolation.*
+28. [homepilot_phase5_planning_and_execution_plan.md](homepilot_phase5_planning_and_execution_plan.md)
+    - *Master architecture & execution plan for Phase 5: Autonomous background daemon (07:00 UTC), RFC 7807 error formatting, PII sanitization guards, PostHog telemetry dashboards, and Docker/CI-CD.*
 
 ---
 
