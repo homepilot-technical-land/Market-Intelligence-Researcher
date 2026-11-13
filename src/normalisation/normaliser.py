@@ -71,6 +71,10 @@ class DocumentNormaliser:
         else:
             markdown = raw_content.strip()
 
+        # Enforce Zero-Trust PII Sanitization
+        from src.normalisation.pii_scrubber import PIIScrubber
+        markdown, _ = PIIScrubber.scrub_text(markdown)
+
         return ExtractedDocument.create(
             source_id=source_id,
             url=url,

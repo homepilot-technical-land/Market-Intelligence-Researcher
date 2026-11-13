@@ -9,6 +9,15 @@ from src.intelligence.authority_discovery import AuthoritySourceDiscoveryEngine
 from src.intelligence.grok_service import GrokService
 from src.models import ResearchObjective
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import RequestValidationError
+from src.api.middleware import (
+    RFC7807Exception,
+    rfc7807_http_exception_handler,
+    rfc7807_validation_exception_handler,
+    rfc7807_custom_exception_handler
+)
+
 repo = IntelligenceRepository()
 pipeline = MarketIntelligencePipeline(repository=repo)
 authority_engine = AuthoritySourceDiscoveryEngine(repository=repo)
@@ -31,6 +40,11 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Register RFC 7807 Standard Exception Handlers
+app.add_exception_handler(StarletteHTTPException, rfc7807_http_exception_handler)
+app.add_exception_handler(RequestValidationError, rfc7807_validation_exception_handler)
+app.add_exception_handler(RFC7807Exception, rfc7807_custom_exception_handler)
 
 # Also ensure bootstrap for testing
 bootstrap_data()

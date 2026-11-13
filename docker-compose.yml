@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB Hub-and-Spoke Storage
+  mongodb:
+    image: mongo:7.0
+    container_name: homepilot_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=homepilot_intelligence
+    networks:
+      - homepilot_net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis Event Queue & Budget Rate Limiting
+  redis:
+    image: redis:7.2-alpine
+    container_name: homepilot_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - homepilot_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Market Intelligence REST API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: homepilot_intelligence_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=homepilot_intelligence
+      - REDIS_URL=redis://redis:6379/0
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY}
+      - GROK_MODEL=${GROK_MODEL:-grok-4.20-0309-non-reasoning}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - homepilot_net
+
+  # 4. Autonomous Scheduler Daemon
+  scheduler_daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: homepilot_scheduler_daemon
+    restart: unless-stopped
+    command: ["python", "cli.py", "run-daemon", "--interval", "3600"]
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=homepilot_intelligence
+      - REDIS_URL=redis://redis:6379/0
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY}
+      - GROK_MODEL=${GROK_MODEL:-grok-4.20-0309-non-reasoning}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      api:
+        condition: service_started
+    networks:
+      - homepilot_net
+
+volumes:
+  mongo_data:
+    name: homepilot_mongo_data
+  redis_data:
+    name: homepilot_redis_data
+
+networks:
+  homepilot_net:
+    name: homepilot_network
+    driver: bridge

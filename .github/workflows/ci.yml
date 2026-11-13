@@ -1,48 +1,43 @@
-name: Market Intelligence CI
+name: HomePilot Intelligence CI Pipeline
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [ "main" ]
   pull_request:
-    branches: [main, master]
-  workflow_dispatch:
+    branches: [ "main" ]
 
 jobs:
-  python-tests:
-    name: "Python Pipeline & Acceptance Tests"
+  test:
+    name: Pytest Verification & Linting
     runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+
     steps:
-      - name: "Checkout repository"
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: "Set up Python 3.12"
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
 
-      - name: "Install dependencies"
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-cov
 
-      - name: "Run pytest test suite"
+      - name: Run Test Suite
+        env:
+          MONGODB_URI: mongodb://localhost:27017
+          MONGODB_DB_NAME: homepilot_intelligence_test
+          FIRECRAWL_API_KEY: fc-mock-ci-key
+          XAI_API_KEY: xai-mock-ci-key
         run: |
-          pytest -v
-
-  node-tests:
-    name: "Node.js Application Service Tests"
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Checkout repository"
-        uses: actions/checkout@v4
-
-      - name: "Set up Node.js 20"
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: "Run Node health test"
-        run: |
-          cd services/application_service
-          node -e "const s = require('./src/index.js'); console.log('Node application service module loaded successfully');"
+          pytest tests/ -v

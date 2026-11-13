@@ -104,6 +104,11 @@ def main():
     op_review_parser.add_argument("--operator", default="operator_1", help="Operator identity signing off")
     op_review_parser.add_argument("--notes", default="Verified by human operator", help="Operator notes")
 
+    # Phase 5 Command: run-daemon (Autonomous 24/7 Scheduling Supervisor)
+    daemon_parser = subparsers.add_parser("run-daemon", help="Run the autonomous production scheduling daemon")
+    daemon_parser.add_argument("--once", action="store_true", help="Execute one complete cycle and exit (for testing/verification)")
+    daemon_parser.add_argument("--interval", type=int, default=3600, help="Loop interval in seconds")
+
     args = parser.parse_args()
 
     pipeline = MarketIntelligencePipeline()
@@ -494,6 +499,19 @@ def main():
                 reason=args.notes
             )
             print(f"\n[REJECTED]: Asset {rejected.asset_id} marked as '{rejected.review_status}'.")
+
+    elif args.command == "run-daemon":
+        from src.scheduling.daemon import ProductionSchedulerDaemon
+        daemon = ProductionSchedulerDaemon(repository=pipeline.repo, pipeline=pipeline)
+        if args.once:
+            print("\nExecuting single complete operational daemon cycle...")
+            res = daemon.run_all_cycle_once()
+            print("\n=== Daemon Operational Cycle Result ===")
+            print(json.dumps(res, indent=2))
+        else:
+            import asyncio
+            print(f"\nStarting HomePilot Production Scheduler Daemon (interval: {args.interval}s)... Press Ctrl+C to halt.")
+            asyncio.run(daemon.start(interval_seconds=args.interval))
 
     else:
         parser.print_help()
