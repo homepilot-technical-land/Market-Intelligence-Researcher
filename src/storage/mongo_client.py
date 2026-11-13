@@ -29,7 +29,16 @@ class MongoDBManager:
 
     def __init__(self, uri: Optional[str] = None, db_name: Optional[str] = None):
         self.uri = uri or os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-        self.db_name = db_name or os.getenv("MONGODB_DB_NAME", "homepilot_intelligence")
+        extracted_db = None
+        try:
+            from urllib.parse import urlparse
+            parsed_path = urlparse(self.uri).path.lstrip('/')
+            if parsed_path:
+                extracted_db = parsed_path.split('?')[0]
+        except Exception:
+            pass
+
+        self.db_name = db_name or os.getenv("MONGODB_DB_NAME") or extracted_db or "marketintelligenceresearch"
         self.client: Optional[MongoClient] = None
         self.db: Optional[Database] = None
 
