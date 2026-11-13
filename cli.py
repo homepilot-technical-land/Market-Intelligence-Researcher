@@ -79,6 +79,11 @@ def main():
     sts_parser.add_argument("--query", required=True, help="Search query")
     sts_parser.add_argument("--limit", type=int, default=3, help="Number of top candidates to scrape")
 
+    # Command: search-fb-communities (Search Facebook communities relating to HomePilot)
+    fb_parser = subparsers.add_parser("search-fb-communities", help="Search Facebook communities & groups relating to HomePilot / Irish FTB")
+    fb_parser.add_argument("--query", default="First Time Buyers Ireland", help="Community topic query")
+    fb_parser.add_argument("--limit", type=int, default=3, help="Number of communities to discover")
+
     args = parser.parse_args()
 
     pipeline = MarketIntelligencePipeline()
@@ -257,6 +262,16 @@ def main():
         print(f"\nExecuting Firecrawl Search-Then-Scrape Pattern for: '{args.query}' (Scrape Limit: {args.limit})")
         results = pipeline.connector.search_then_scrape(query=args.query, scrape_limit=args.limit)
         print(f"Successfully scraped {len(results)} pages:\n")
+        for i, item in enumerate(results, 1):
+            print(f"[{i}] {item.get('title')}")
+            print(f"    URL: {item.get('url')}")
+            print(f"    Content Length: {len(item.get('markdown', ''))} chars")
+            print(f"    Preview: {item.get('markdown', '')[:180].strip()}...\n")
+
+    elif args.command == "search-fb-communities":
+        print(f"\nSearching Facebook Communities for: '{args.query}' (Limit: {args.limit})")
+        results = pipeline.connector.search_facebook_communities(query=args.query, limit=args.limit)
+        print(f"Discovered {len(results)} Facebook communities/groups:\n")
         for i, item in enumerate(results, 1):
             print(f"[{i}] {item.get('title')}")
             print(f"    URL: {item.get('url')}")

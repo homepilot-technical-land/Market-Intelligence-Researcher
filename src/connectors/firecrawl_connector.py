@@ -281,17 +281,83 @@ For full details contact the relevant authority."""
         if not candidates:
             return []
 
+    # =========================================================================
+    # 4. Domain & Target Scoping Policy
+    # =========================================================================
+    # Platforms strictly excluded from Firecrawl:
+    # - Instagram & TikTok: short-form visual media/irrelevant for structured property intelligence
+    # - X / Twitter: strictly handled by xAI API (Grok) directly, not via Firecrawl scraping
+    STRICT_EXCLUDED_DOMAINS = [
+        "instagram.com", "tiktok.com", "twitter.com", "x.com", "t.co",
+        "pinterest.com", "linkedin.com"
+    ]
+
+    def is_permitted_url(self, url: str, title: str = "", description: str = "") -> bool:
+        """Enforces domain routing policy:
+        1. Strictly excludes Instagram, TikTok, and X/Twitter (X is handled natively by xAI API).
+        2. Allows Irish housing & institutional links (the 35 registered seed sources + related Irish pages).
+        3. Allows Facebook ONLY for public communities, groups, and discussion hubs relating to HomePilot / Irish FTB.
+        """
+        low_url = url.lower()
+        
+        # Rule 1: Exclude Instagram, TikTok, X/Twitter, and other general networks
+        if any(domain in low_url for domain in self.STRICT_EXCLUDED_DOMAINS):
+            return False
+
+        # Rule 2: Facebook Policy - Allowed ONLY for HomePilot / Irish housing communities & groups
+        if "facebook.com" in low_url:
+            text = f"{low_url} {title.lower()} {description.lower()}"
+            is_group_or_community = "/groups/" in low_url or "/community/" in low_url
+            has_ftb_context = any(kw in text for kw in [
+                "first time buyer", "ftb", "homebuyers", "mortgage",
+                "housing", "property", "homepilot", "new homes ireland",
+                "irish property", "dublin housing", "first home scheme"
+            ])
+            # Permit only if it is a relevant community group discussion
+            return is_group_or_community or has_ftb_context
+
+        # Rule 3: Allow all institutional Irish housing links and related web sources
+        return True
+
+    # =========================================================================
+    # 5. Search-then-Scrape Two-Step Pattern
+    # =========================================================================
+    def search_then_scrape(
+        self,
+        query: str,
+        search_limit: int = 10,
+        scrape_limit: int = 3,
+        keyword_filters: Optional[List[str]] = None,
+        actions: Optional[List[Dict[str, Any]]] = None
+    ) -> List[Dict[str, Any]]:
+        """Implements the documented Search-Then-Scrape Two-Step Pattern.
+        
+        Step 1: Executes lightweight search to collect candidate URLs and snippets.
+        Step 2: Applies heuristic relevancy & domain policy filtering (allowing Facebook communities,
+                excluding Instagram/TikTok/X, and focusing on Irish housing links).
+        Step 3: Dispatches selective full markdown scraping ONLY to the top relevant URLs.
+        """
+        logger.info(f"Executing search-then-scrape for query: '{query}' (Search Limit: {search_limit}, Scrape Limit: {scrape_limit})")
+        
+        # Step 1: Lightweight Candidate Search (No heavy markdown parsing)
+        candidates = self.search(query=query, limit=search_limit)
+        if not candidates:
+            return []
+
         # Step 2: Relevance and domain filtering
         filtered_candidates = []
-        excluded_domains = ["facebook.com", "instagram.com", "twitter.com", "x.com", "tiktok.com", "linkedin.com", "pinterest.com"]
         filter_terms = [k.lower() for k in (keyword_filters or ["housing", "mortgage", "home", "buyer", "scheme", "rate", "property", "price"])]
 
         for item in candidates:
-            item_url = item.get("url", "").lower()
-            if any(domain in item_url for domain in excluded_domains):
+            item_url = item.get("url", "")
+            item_title = item.get("title", "")
+            item_desc = item.get("description", "")
+
+            # Check domain permission policy
+            if not self.is_permitted_url(url=item_url, title=item_title, description=item_desc):
                 continue
 
-            text = f"{item.get('title', '')} {item.get('description', '')} {item_url}".lower()
+            text = f"{item_title} {item_desc} {item_url}".lower()
             relevance_match = any(term in text for term in filter_terms)
             if relevance_match or not keyword_filters:
                 filtered_candidates.append(item)
@@ -319,6 +385,21 @@ For full details contact the relevant authority."""
             })
 
         return scraped_results
+
+    def search_facebook_communities(
+        self,
+        query: str = "Irish First Time Buyers",
+        limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Dedicated search for Facebook communities and public discussion groups relating to HomePilot / Irish FTB."""
+        search_query = f"site:facebook.com/groups/ {query}"
+        logger.info(f"Searching Facebook communities via Firecrawl: '{search_query}'")
+        return self.search_then_scrape(
+            query=search_query,
+            search_limit=limit * 2,
+            scrape_limit=limit,
+            keyword_filters=["buyer", "home", "property", "mortgage", "group", "community"]
+        )
 
     # =========================================================================
     # 5. Interactive Actions Helpers (/features/interact)

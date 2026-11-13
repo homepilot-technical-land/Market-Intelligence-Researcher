@@ -26,6 +26,36 @@ def test_firecrawl_interact_action_builders():
     write_act = FirecrawlConnector.build_write_action("input#county", "Kildare")
     assert write_act == {"type": "write", "selector": "input#county", "text": "Kildare"}
 
+def test_firecrawl_domain_scoping_policy():
+    connector = FirecrawlConnector(api_key="")
+    
+    # 1. Instagram, TikTok, and X/Twitter must be strictly excluded from Firecrawl
+    assert connector.is_permitted_url("https://www.instagram.com/p/irishhomes/") is False
+    assert connector.is_permitted_url("https://www.tiktok.com/@housingtips") is False
+    assert connector.is_permitted_url("https://x.com/ccpc_ie/status/123456") is False
+    assert connector.is_permitted_url("https://twitter.com/RevenueIE/status/789") is False
+
+    # 2. Irish housing websites and institutional links must be permitted
+    assert connector.is_permitted_url("https://www.revenue.ie/en/property/help-to-buy.aspx") is True
+    assert connector.is_permitted_url("https://www.ccpc.ie/buying-a-home") is True
+    assert connector.is_permitted_url("https://www.daft.ie/for-sale/dublin") is True
+    assert connector.is_permitted_url("https://glenveagh.ie/developments") is True
+
+    # 3. Facebook communities relating to HomePilot / Irish FTB are permitted
+    assert connector.is_permitted_url(
+        url="https://www.facebook.com/groups/firsttimebuyersireland/",
+        title="First Time Buyers Ireland Discussion Group",
+        description="Public peer support and mortgage guidance"
+    ) is True
+    assert connector.is_permitted_url(
+        url="https://www.facebook.com/groups/homepilotftbcommunity/",
+        title="HomePilot FTB Community",
+        description="Buyer discussions"
+    ) is True
+
+    # 4. Generic non-community Facebook links without FTB context are rejected
+    assert connector.is_permitted_url("https://www.facebook.com/randomuser/posts/1234") is False
+
 def test_firecrawl_scrape_simulation_fallback():
     connector = FirecrawlConnector(api_key="")
     res = connector.scrape_url("https://www.ccpc.ie/buying-a-home")
@@ -54,6 +84,14 @@ def test_firecrawl_search_then_scrape_two_step():
         assert "url" in r
         assert "markdown" in r
         assert len(r["markdown"]) > 50
+
+def test_firecrawl_facebook_community_search():
+    connector = FirecrawlConnector(api_key="")
+    results = connector.search_facebook_communities(query="First Time Buyers Ireland", limit=2)
+    assert len(results) > 0
+    for r in results:
+        assert "url" in r
+        assert "markdown" in r
 
 def test_firecrawl_budget_tracker_enforcement():
     tracker = BudgetGovernanceTracker()

@@ -536,6 +536,22 @@
         "exclude_paths": []
       },
       "tags": ["residential_search", "homes", "meath", "dublin"]
+    },
+    {
+      "id": "fb_ftb_ireland_community",
+      "name": "Facebook Community - First Time Buyers Ireland & HomePilot Groups",
+      "url": "https://www.facebook.com/groups/firsttimebuyersireland/",
+      "ecosystem": "Housing supply and development intelligence",
+      "connector_type": "firecrawl",
+      "cadence": "weekly",
+      "discovery": {
+        "mode": "targeted_crawl",
+        "max_depth": 1,
+        "page_limit": 30,
+        "include_paths": ["/groups/firsttimebuyersireland"],
+        "exclude_paths": ["/ads", "/login", "/recover"]
+      },
+      "tags": ["first_time_buyers", "facebook_community", "buyer_sentiment", "homepilot_community"]
     }
   ]
 }
