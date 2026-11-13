@@ -116,10 +116,20 @@ flowchart TD
 
 ---
 
+### Part 7: Closed-Loop Feedback & System Engineering Audits
+25. [homepilot_closed_loop_research_feedback_architecture.md](homepilot_closed_loop_research_feedback_architecture.md)
+    - *Closed-loop bilateral feedback mechanism: querying internal MongoDB pool, flagging unanswered cold spots, and triggering periodic batched re-crawls.*
+26. [homepilot_bilateral_semantic_wiring_and_brief_creation_roles.md](homepilot_bilateral_semantic_wiring_and_brief_creation_roles.md)
+    - *Clear separation of roles: the Market Research Intelligence Engine owns semantic wiring & relationships, while GrokBot (with human validation) creates the brief.*
+27. [homepilot_end_to_end_system_harmony_and_engineering_audit.md](homepilot_end_to_end_system_harmony_and_engineering_audit.md)
+    - *Comprehensive engineering audit verifying kickoff charter alignment, elimination of dormant pathways, unified repository data access, and hermetic test database isolation.*
+
+---
+
 ## Current System Test Verification Status
 
 ```bash
 source .venv/bin/activate && pytest -q
-======================= 54 passed in 21.49s =======================
+======================= 54 passed in 42.56s =======================
 ```
 All 54 unit and integration tests across the entire codebase are 100% green.
