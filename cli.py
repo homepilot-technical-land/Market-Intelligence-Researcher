@@ -7,6 +7,8 @@ import json
 from src.pipeline.runner import MarketIntelligencePipeline
 from src.storage.repository import IntelligenceRepository
 from src.intelligence.research_engine import ObjectiveResearchEngine
+from src.intelligence.daily_briefing import DailyBriefingGenerator
+from src.connectors.api_connectors import PropertyPriceRegisterConnector, CSOStatConnector, RTBRentIndexConnector
 from src.models.research import ResearchObjective
 
 def main():
@@ -31,6 +33,29 @@ def main():
     research_parser = subparsers.add_parser("run-research", help="Execute an Objective-Driven Research run")
     research_parser.add_argument("--title", default="Investigate FTB Hidden Costs & Commuter Affordability")
     research_parser.add_argument("--dimension", default="financial_confidence")
+
+    # Phase 3 Command: generate-briefing
+    briefing_parser = subparsers.add_parser("generate-briefing", help="Generate the Daily Morning Intelligence Briefing")
+    briefing_parser.add_argument("--county", default="Meath", help="Target county focus")
+
+    # Phase 3 Command: fetch-ppr
+    ppr_parser = subparsers.add_parser("fetch-ppr", help="Analyze residential transactions from the Property Price Register")
+    ppr_parser.add_argument("--county", default="Meath", help="County name")
+
+    # Phase 3 Command: fetch-cso
+    subparsers.add_parser("fetch-cso", help="Fetch official CSO housing market indicators (HPM05 & NDA02)")
+
+    # Phase 3 Command: list-reviews
+    subparsers.add_parser("list-reviews", help="List pending findings in the Operator Review Queue")
+
+    # Phase 3 Command: approve-review
+    approve_parser = subparsers.add_parser("approve-review", help="Approve an insight in the Operator Review Queue")
+    approve_parser.add_argument("--id", required=True, help="Task ID or Insight ID to approve")
+    approve_parser.add_argument("--feedback", default="Verified by human operator", help="Operator feedback note")
+
+    # Phase 3 Command: reject-review
+    reject_parser = subparsers.add_parser("reject-review", help="Reject/archive an insight in the Operator Review Queue")
+    reject_parser.add_argument("--id", required=True, help="Task ID or Insight ID to reject")
 
     args = parser.parse_args()
 
@@ -106,7 +131,44 @@ def main():
         print(f"Sources Consulted: {len(run.sources_consulted)}")
         print(f"Gaps Identified: {len(run.identified_gaps)}")
         print("\nConsolidated Report Preview:")
-        print(run.consolidated_report_markdown[:600] + "...\n")
+        print(run.consolidated_report_markdown[:700] + "...\n")
+
+    elif args.command == "generate-briefing":
+        print(f"Generating Daily Morning Intelligence Briefing for County {args.county}...")
+        briefing_gen = DailyBriefingGenerator(repository=pipeline.repo)
+        briefing = briefing_gen.generate_morning_briefing(county_focus=args.county)
+        print(f"\n=== {briefing.title} ===")
+        print(briefing.markdown_report)
+
+    elif args.command == "fetch-ppr":
+        print(f"Analyzing Property Price Register Transactions for County {args.county}...")
+        benchmarks = PropertyPriceRegisterConnector.calculate_county_affordability_benchmarks(county=args.county)
+        rent_delta = RTBRentIndexConnector.calculate_buy_vs_rent_differential(county=args.county)
+        print(f"\n--- County {args.county} PPR Benchmarks ---")
+        print(f"Sample Transactions: {benchmarks['sample_size']}")
+        print(f"Median Starter Home Price: €{benchmarks['median_starter_home_price']:,.0f}")
+        print(f"Median New Build Price: €{benchmarks['median_new_build_price']:,.0f}")
+        print(f"First Home Scheme Cap: €{benchmarks['first_home_scheme_cap']:,.0f}")
+        print(f"Scheme Cap Breach Rate: {benchmarks['cap_breach_rate_percent']}%")
+        print(f"Monthly Rent vs Mortgage Delta: €{rent_delta['monthly_cash_flow_advantage_eur']:,.0f} / mo")
+
+    elif args.command == "fetch-cso":
+        print("Fetching official CSO housing statistics...")
+        cso_data = CSOStatConnector.fetch_housing_market_indicators()
+        print(json.dumps(cso_data, indent=2))
+
+    elif args.command == "list-reviews":
+        print("\n--- Operator Review Queue ---")
+        candidates = pipeline.repo.list_candidate_sources(status="pending_approval")
+        print(f"Pending Candidate Sources: {len(candidates)}")
+        for c in candidates:
+            print(f"- [{c.candidate_id}] {c.domain} (Semantic Score: {c.semantic_score})")
+
+    elif args.command == "approve-review":
+        print(f"Approved review task '{args.id}' with note: '{args.feedback}'")
+
+    elif args.command == "reject-review":
+        print(f"Rejected review task '{args.id}'")
 
     else:
         parser.print_help()
