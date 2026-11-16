@@ -57,9 +57,22 @@ class ProductionSchedulerDaemon:
             return {"status": "failed", "error": str(e)}
 
     def execute_cadence_monitor_job(self, max_sources: Optional[int] = None) -> Dict[str, Any]:
-        """Job 2: Evaluates active sources and runs scheduled discovery on due sources."""
+        """Job 2: Evaluates active sources and runs scheduled discovery on due sources.
+        
+        Uses least-recently-crawled round-robin sorting to guarantee that all 35 seed sources
+        receive progressive and balanced coverage over time without starvation.
+        """
         logger.info("Executing scheduled source cadence monitor job...")
         sources = self.repo.list_sources(active_only=True)
+
+        def get_crawl_key(s):
+            if not s.last_crawled_at:
+                return datetime.min.replace(tzinfo=timezone.utc)
+            if s.last_crawled_at.tzinfo is None:
+                return s.last_crawled_at.replace(tzinfo=timezone.utc)
+            return s.last_crawled_at
+
+        sources = sorted(sources, key=get_crawl_key)
         checked_count = 0
         discovered_total = 0
 
@@ -72,6 +85,8 @@ class ProductionSchedulerDaemon:
                     urls = self.pipeline.run_source_discovery(source.source_id, limit=20)
                     checked_count += 1
                     discovered_total += len(urls)
+                    source.last_crawled_at = datetime.now(timezone.utc)
+                    self.repo.upsert_source(source)
                 except Exception as e:
                     logger.warning(f"Failed source discovery for {source.source_id}: {e}")
 

@@ -1,12 +1,14 @@
+import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Query
-from typing import Dict, Any, List, Optional
+from fastapi import FastAPI, HTTPException, Query, Header, Depends
+from typing import Dict, Any, List, Optional, Tuple
 from pydantic import BaseModel
 
 from src.storage.repository import IntelligenceRepository
 from src.pipeline.runner import MarketIntelligencePipeline
 from src.intelligence.authority_discovery import AuthoritySourceDiscoveryEngine
 from src.intelligence.grok_service import GrokService
+from src.scheduling.daemon import ProductionSchedulerDaemon
 from src.models import ResearchObjective
 from src.mcp_server import server as mcp_server
 from mcp.server.transport_security import TransportSecuritySettings
@@ -24,6 +26,7 @@ repo = IntelligenceRepository()
 pipeline = MarketIntelligencePipeline(repository=repo)
 authority_engine = AuthoritySourceDiscoveryEngine(repository=repo)
 grok_service = GrokService()
+daemon_instance = ProductionSchedulerDaemon(repository=repo, pipeline=pipeline)
 
 # Configure MCP Server with tunnel/cloud security settings
 mcp_security = TransportSecuritySettings(
@@ -63,6 +66,15 @@ app.add_exception_handler(RFC7807Exception, rfc7807_custom_exception_handler)
 
 # Also ensure bootstrap for testing
 bootstrap_data()
+
+INTERNAL_API_KEY = os.getenv("HOMEPILOT_INTERNAL_API_KEY")
+
+def verify_internal_auth(x_homepilot_key: Optional[str] = Header(None, alias="X-HomePilot-Key")):
+    """Validates internal requests if HOMEPILOT_INTERNAL_API_KEY is configured in the environment."""
+    if INTERNAL_API_KEY:
+        if not x_homepilot_key or x_homepilot_key != INTERNAL_API_KEY:
+            raise HTTPException(status_code=401, detail="Unauthorized: Invalid or missing X-HomePilot-Key header")
+    return True
 
 @app.get("/")
 @app.head("/")
@@ -119,9 +131,13 @@ from src.intelligence.daily_briefing import DailyBriefingGenerator
 from src.connectors.api_connectors import PropertyPriceRegisterConnector, CSOStatConnector
 from src.models.asset import GeneratedAsset, AssetPayload
 
+from datetime import datetime, timezone
 daily_generator = DailyBriefingGenerator(repository=repo)
 ppr_conn = PropertyPriceRegisterConnector()
 cso_conn = CSOStatConnector()
+
+# High-Velocity In-Memory Cache (1-Hour TTL) for Instant County Metrics
+_metrics_cache: Dict[str, Tuple[datetime, Dict[str, Any]]] = {}
 
 @app.get("/briefings/latest")
 def get_latest_briefing(county: str = "Meath"):
@@ -131,14 +147,51 @@ def get_latest_briefing(county: str = "Meath"):
 
 @app.get("/market/metrics/{county}")
 def get_county_market_metrics(county: str):
-    """Returns live PPR prices, CSO inflation benchmarks, and scheme caps."""
-    affordability = ppr_conn.calculate_county_affordability_benchmarks(county=county)
+    """Returns live PPR prices, CSO inflation benchmarks, and scheme caps (cached for high performance)."""
+    norm_county = county.strip().title()
+    now = datetime.now(timezone.utc)
+    if norm_county in _metrics_cache:
+        cached_time, cached_val = _metrics_cache[norm_county]
+        if (now - cached_time).total_seconds() < 3600:
+            return cached_val
+
+    affordability = ppr_conn.calculate_county_affordability_benchmarks(county=norm_county)
     cso_data = cso_conn.fetch_housing_market_indicators()
-    return {
-        "county": county,
+    val = {
+        "county": norm_county,
         "ppr_affordability_benchmarks": affordability,
         "cso_housing_indicators": cso_data
     }
+    _metrics_cache[norm_county] = (now, val)
+    return val
+
+@app.get("/daemon/status")
+def get_daemon_status():
+    """Returns the current operational status and timestamps of the background scheduler daemon."""
+    return {
+        "status": "online",
+        "last_briefing_time": daemon_instance.last_briefing_time.isoformat() if daemon_instance.last_briefing_time else None,
+        "last_cadence_run": daemon_instance.last_cadence_run.isoformat() if daemon_instance.last_cadence_run else None,
+        "last_gap_batch_run": daemon_instance.last_gap_batch_run.isoformat() if daemon_instance.last_gap_batch_run else None
+    }
+
+@app.post("/daemon/run-cycle", dependencies=[Depends(verify_internal_auth)])
+def trigger_daemon_cycle(max_sources: Optional[int] = 2):
+    """Triggers an on-demand complete operational cycle (briefing, cadence scour, gap batch) online in the cloud."""
+    result = daemon_instance.run_all_cycle_once(max_sources=max_sources)
+    return result
+
+@app.post("/daemon/scour-due-sources", dependencies=[Depends(verify_internal_auth)])
+def trigger_scour_due_sources(max_sources: Optional[int] = None):
+    """Triggers an on-demand scour of active sources due for ingestion online in the cloud."""
+    result = daemon_instance.execute_cadence_monitor_job(max_sources=max_sources)
+    return result
+
+@app.post("/daemon/briefing", dependencies=[Depends(verify_internal_auth)])
+def trigger_briefing(county: str = "Meath"):
+    """Triggers an on-demand compilation of the Daily Morning Briefing online in the cloud."""
+    result = daemon_instance.execute_daily_briefing_job(county_focus=county)
+    return result
 
 class CampaignDraftRequest(BaseModel):
     title: str
@@ -289,4 +342,4 @@ def get_chat_interface():
     """
 
 # Mount the MCP server routes (e.g. /mcp for Streamable HTTP)
-app.mount("", mcp_app)
+app.mount("/mcp", mcp_app)

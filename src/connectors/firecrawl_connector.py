@@ -297,11 +297,47 @@ For full details contact the relevant authority."""
     ]
 
     def is_permitted_url(self, url: str, title: str = "", description: str = "") -> bool:
-        """Enforces domain routing policy:
-        1. Strictly excludes Instagram, TikTok, and X/Twitter (X is handled natively by xAI API).
-        2. Allows Irish housing & institutional links (the 35 registered seed sources + related Irish pages).
-        3. Allows Facebook ONLY for public communities, groups, and discussion hubs relating to HomePilot / Irish FTB.
+        """Enforces domain routing policy and SSRF (Server-Side Request Forgery) protection:
+        1. Validates scheme and blocks localhost, loopback, cloud metadata, and RFC 1918 private IPs.
+        2. Strictly excludes Instagram, TikTok, and X/Twitter (X is handled natively by xAI API).
+        3. Allows Irish housing & institutional links (the 35 registered seed sources + related Irish pages).
+        4. Allows Facebook ONLY for public communities, groups, and discussion hubs relating to HomePilot / Irish FTB.
         """
+        if not url:
+            return False
+
+        try:
+            from urllib.parse import urlparse
+            import ipaddress
+            parsed = urlparse(url)
+            if parsed.scheme not in ("http", "https"):
+                return False
+
+            hostname = (parsed.hostname or "").lower()
+            if not hostname:
+                return False
+
+            # SSRF Protection: Block localhost, loopbacks, and cloud metadata IPs
+            blocked_hosts = {
+                "localhost", "127.0.0.1", "0.0.0.0", "::1",
+                "169.254.169.254", "metadata.google.internal", "instance-data"
+            }
+            if hostname in blocked_hosts or hostname.endswith(".internal") or hostname.endswith(".local"):
+                logger.warning(f"SSRF attempt blocked for host '{hostname}': {url}")
+                return False
+
+            # Block private RFC 1918 / loopback / link-local IP addresses
+            try:
+                ip = ipaddress.ip_address(hostname)
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    logger.warning(f"SSRF private IP blocked for '{hostname}': {url}")
+                    return False
+            except ValueError:
+                pass  # Hostname is a standard domain name, not a raw IP
+        except Exception as e:
+            logger.warning(f"URL parsing failed for {url}: {e}")
+            return False
+
         low_url = url.lower()
         
         # Rule 1: Exclude Instagram, TikTok, X/Twitter, and other general networks
