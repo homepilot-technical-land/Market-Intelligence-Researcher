@@ -20,6 +20,8 @@ from mcp.server.mcpserver import MCPServer
 
 from src.storage.repository import IntelligenceRepository
 from src.connectors.api_connectors import PropertyPriceRegisterConnector, CSOStatConnector
+from src.connectors.firecrawl_connector import FirecrawlConnector
+from src.intelligence.grok_service import GrokService
 from src.intelligence.daily_briefing import DailyBriefingGenerator
 from src.models.research import ResearchObjective
 from src.models.asset import GeneratedAsset, AssetPayload
@@ -31,11 +33,15 @@ server = MCPServer("HomePilot Market Intelligence")
 repo = IntelligenceRepository()
 ppr_conn = PropertyPriceRegisterConnector()
 cso_conn = CSOStatConnector()
+firecrawl_conn = FirecrawlConnector()
+grok_svc = GrokService()
 daily_gen = DailyBriefingGenerator(repository=repo)
 
 @server.tool()
 def get_county_market_benchmarks(county: str = "Meath") -> Dict[str, Any]:
-    """Retrieve verified Property Price Register (PPR) starter prices, CSO inflation rates, and statutory First Home Scheme price caps for an Irish county.
+    """Retrieve verified Property Price Register (PPR) starter & mover prices, CSO inflation rates, and statutory First Home Scheme price caps for an Irish county.
+    
+    Serves both First-Time Buyers (FTB) and Second-Time Buyers (STB / home movers).
     
     Args:
         county: Irish county name (e.g. 'Meath', 'Kildare', 'Wicklow', 'Dublin').
@@ -158,6 +164,179 @@ def ask_research_engine(question: str, county: Optional[str] = "Meath") -> Dict[
         },
         "engine_guidance": "Use the verified market context above to answer. Adhere strictly to Rule B-02 (double citations) and Rule B-04 (dual human operator review)."
     }
+
+@server.tool()
+def scrape_web_url(url: str, only_main_content: bool = True) -> Dict[str, Any]:
+    """Scrape and extract clean markdown content from an external web page using Firecrawl.
+    
+    Args:
+        url: Full web URL to scrape.
+        only_main_content: Whether to strip navigation, footers, and boilerplate (default True).
+    """
+    scrape_res = firecrawl_conn.scrape_url(url=url, only_main_content=only_main_content)
+    return {
+        "url": url,
+        "title": scrape_res.get("title", ""),
+        "markdown_content": scrape_res.get("markdown", "")[:5000],
+        "status": scrape_res.get("status", 200)
+    }
+
+@server.tool()
+def search_web_sources(query: str, limit: int = 3) -> Dict[str, Any]:
+    """Execute a search-then-scrape query across live Irish housing and market sources using Firecrawl.
+    
+    Covers market policies, price changes, and regulatory guidelines for both First-Time Buyers and Second-Time Buyers.
+    
+    Args:
+        query: Search query (e.g. 'Central Bank second time buyer mortgage rules', 'Help to Buy cap Meath').
+        limit: Max search results to return (default 3).
+    """
+    results = firecrawl_conn.search(query=query, limit=limit)
+    return {
+        "query": query,
+        "results_count": len(results),
+        "results": results
+    }
+
+@server.tool()
+def extract_social_thread(platform: str, url_or_query: str) -> Dict[str, Any]:
+    """Extract discussions, community posts, and sentiment across social platforms:
+    Reddit, Instagram, Facebook, and X (Twitter).
+    
+    Covers both First-Time Buyers (FTBs) and Second-Time Buyers (STBs / movers / trader-ups).
+    
+    Args:
+        platform: Target platform ('reddit', 'x', 'facebook', 'instagram').
+        url_or_query: Direct URL of the post/thread, or topic query.
+    """
+    platform_clean = platform.lower().strip()
+    
+    # 1. Reddit
+    if "reddit" in platform_clean:
+        if url_or_query.startswith("http"):
+            clean_url = url_or_query.split("?")[0].rstrip("/")
+            json_url = f"{clean_url}.json"
+            try:
+                import httpx
+                headers = {"User-Agent": "HomePilot-Intelligence-Researcher/1.0 (contact: info@homepilot.ie)"}
+                res = httpx.get(json_url, headers=headers, timeout=15.0)
+                if res.status_code == 200:
+                    data = res.json()
+                    post_data = data[0]["data"]["children"][0]["data"]
+                    comments_data = data[1]["data"]["children"]
+                    comments = []
+                    for c in comments_data[:10]:
+                        if "body" in c.get("data", {}):
+                            comments.append(c["data"]["body"][:500])
+                    return {
+                        "platform": "reddit",
+                        "title": post_data.get("title", ""),
+                        "subreddit": post_data.get("subreddit", ""),
+                        "author": "[REDACTED_USER]",
+                        "selftext": post_data.get("selftext", "")[:3000],
+                        "comments_sample": comments,
+                        "extraction_method": "reddit_direct_api"
+                    }
+            except Exception:
+                pass
+            
+            scrape_res = firecrawl_conn.scrape_url(url=url_or_query, only_main_content=True)
+            return {
+                "platform": "reddit",
+                "title": scrape_res.get("title", ""),
+                "content": scrape_res.get("markdown", "")[:4000],
+                "extraction_method": "firecrawl_scrape"
+            }
+        else:
+            search_query = f"site:reddit.com/r/ireland OR site:reddit.com/r/irishpersonalfinance {url_or_query}"
+            results = firecrawl_conn.search(query=search_query, limit=3)
+            return {
+                "platform": "reddit",
+                "query": url_or_query,
+                "discussions_found": results,
+                "extraction_method": "firecrawl_search"
+            }
+
+    # 2. X / Twitter
+    elif "x" in platform_clean or "twitter" in platform_clean:
+        intel = grok_svc.synthesize_strategic_x_intelligence(topic=url_or_query)
+        return {
+            "platform": "x",
+            "topic": url_or_query,
+            "analysis": intel.analysis,
+            "buyer_pain_points": intel.buyer_pain_points,
+            "proposed_bot_communications": intel.proposed_bot_communications,
+            "homepilot_product_alignment": intel.homepilot_product_alignment,
+            "extraction_method": "xai_grok_native"
+        }
+
+    # 3. Facebook
+    elif "facebook" in platform_clean or "fb" in platform_clean:
+        if url_or_query.startswith("http"):
+            scrape_res = firecrawl_conn.scrape_url(url=url_or_query, only_main_content=True)
+            return {
+                "platform": "facebook",
+                "url": url_or_query,
+                "content": scrape_res.get("markdown", "")[:3000],
+                "extraction_method": "firecrawl_scrape"
+            }
+        else:
+            fb_results = firecrawl_conn.search_facebook_communities(query=url_or_query, limit=3)
+            return {
+                "platform": "facebook",
+                "query": url_or_query,
+                "community_discussions": fb_results,
+                "extraction_method": "firecrawl_facebook_community_search"
+            }
+
+    # 4. Instagram
+    elif "instagram" in platform_clean or "insta" in platform_clean:
+        if url_or_query.startswith("http"):
+            actions = [FirecrawlConnector.build_wait_action(milliseconds=2000)]
+            scrape_res = firecrawl_conn.scrape_url(url=url_or_query, only_main_content=True, actions=actions)
+            return {
+                "platform": "instagram",
+                "url": url_or_query,
+                "caption_and_metadata": scrape_res.get("markdown", "")[:3000],
+                "extraction_method": "firecrawl_instagram_hydrate"
+            }
+        else:
+            search_query = f"site:instagram.com {url_or_query} Irish property mortgage"
+            results = firecrawl_conn.search(query=search_query, limit=3)
+            return {
+                "platform": "instagram",
+                "query": url_or_query,
+                "results": results,
+                "extraction_method": "firecrawl_search"
+            }
+
+    else:
+        return {"error": f"Unsupported platform: '{platform}'. Supported: 'reddit', 'x', 'facebook', 'instagram'."}
+
+@server.tool()
+def synthesize_x_discourse(
+    topic: str,
+    county: Optional[str] = None,
+    buyer_type: str = "both"
+) -> Dict[str, Any]:
+    """Leverage xAI Grok to synthesize real-time social discourse, buyer pain points, and educational campaign angles on X.
+    
+    Supports both First-Time Buyers (FTB) and Second-Time Buyers (STB / home movers / trader-ups).
+    
+    Args:
+        topic: Market friction, scheme name, or housing policy challenge.
+        county: Optional target Irish commuter county (e.g. 'Meath', 'Kildare', 'Wicklow').
+        buyer_type: Target buyer persona filter ('first_time_buyer', 'second_time_buyer', or 'both').
+    """
+    if buyer_type == "second_time_buyer":
+        focus_topic = f"{topic} (focus: second-time buyers, home movers, trading up, negative equity, chain sales)"
+    elif buyer_type == "first_time_buyer":
+        focus_topic = f"{topic} (focus: first-time buyers, Help to Buy, First Home Scheme, starter homes)"
+    else:
+        focus_topic = f"{topic} (focus: both first-time buyers and second-time home movers)"
+        
+    intel = grok_svc.synthesize_strategic_x_intelligence(topic=focus_topic, county=county)
+    return intel.model_dump()
 
 if __name__ == "__main__":
     import argparse

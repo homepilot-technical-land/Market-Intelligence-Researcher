@@ -28,13 +28,17 @@ authority_engine = AuthoritySourceDiscoveryEngine(repository=repo)
 grok_service = GrokService()
 daemon_instance = ProductionSchedulerDaemon(repository=repo, pipeline=pipeline)
 
-# Configure MCP Server with tunnel/cloud security settings
+# Configure MCP Server with tunnel/cloud security settings (streamable_http_path="/" for clean FastAPI mount)
 mcp_security = TransportSecuritySettings(
     enable_dns_rebinding_protection=False,
     allowed_hosts=["*"],
     allowed_origins=["*"]
 )
-mcp_app = mcp_server.streamable_http_app(transport_security=mcp_security, host="0.0.0.0")
+mcp_app = mcp_server.streamable_http_app(
+    streamable_http_path="/",
+    transport_security=mcp_security,
+    host="0.0.0.0"
+)
 
 def bootstrap_data():
     if not repo.list_sources():

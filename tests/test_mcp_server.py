@@ -8,6 +8,10 @@ from src.mcp_server import (
     submit_knowledge_gap,
     submit_campaign_blueprint,
     ask_research_engine,
+    scrape_web_url,
+    search_web_sources,
+    extract_social_thread,
+    synthesize_x_discourse,
     repo
 )
 
@@ -72,3 +76,46 @@ def test_mcp_ask_research_engine():
     assert res["county"] == "Meath"
     assert "verified_market_context" in res
     assert "engine_guidance" in res
+
+def test_mcp_scrape_web_url():
+    res = scrape_web_url("https://www.revenue.ie/en/property/help-to-buy.aspx")
+    assert "url" in res
+    assert "markdown_content" in res
+    assert "status" in res
+
+def test_mcp_search_web_sources():
+    res = search_web_sources("Meath commuter new homes", limit=2)
+    assert res["query"] == "Meath commuter new homes"
+    assert "results" in res
+    assert "results_count" in res
+
+def test_mcp_extract_social_thread_reddit():
+    res = extract_social_thread("reddit", "First time buyer advice Navan")
+    assert res["platform"] == "reddit"
+    assert "discussions_found" in res
+
+def test_mcp_extract_social_thread_x():
+    res = extract_social_thread("x", "Central Bank mortgage caps")
+    assert res["platform"] == "x"
+    assert "analysis" in res
+    assert "buyer_pain_points" in res
+
+def test_mcp_extract_social_thread_facebook():
+    res = extract_social_thread("facebook", "Irish Property Movers")
+    assert res["platform"] == "facebook"
+    assert "community_discussions" in res
+
+def test_mcp_extract_social_thread_instagram():
+    res = extract_social_thread("instagram", "Irish property interior")
+    assert res["platform"] == "instagram"
+    assert "results" in res
+
+def test_mcp_synthesize_x_discourse_second_time_buyer():
+    res = synthesize_x_discourse(
+        topic="Selling while buying chain sales",
+        county="Kildare",
+        buyer_type="second_time_buyer"
+    )
+    assert "analysis" in res
+    assert "buyer_pain_points" in res
+    assert "proposed_bot_communications" in res
