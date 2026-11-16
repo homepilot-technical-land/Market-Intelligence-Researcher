@@ -21,6 +21,7 @@ from mcp.server.mcpserver import MCPServer
 from src.storage.repository import IntelligenceRepository
 from src.connectors.api_connectors import PropertyPriceRegisterConnector, CSOStatConnector
 from src.connectors.firecrawl_connector import FirecrawlConnector
+from src.connectors.reddit_connector import RedditConnector
 from src.intelligence.grok_service import GrokService
 from src.intelligence.daily_briefing import DailyBriefingGenerator
 from src.models.research import ResearchObjective
@@ -34,6 +35,7 @@ repo = IntelligenceRepository()
 ppr_conn = PropertyPriceRegisterConnector()
 cso_conn = CSOStatConnector()
 firecrawl_conn = FirecrawlConnector()
+reddit_conn = RedditConnector()
 grok_svc = GrokService()
 daily_gen = DailyBriefingGenerator(repository=repo)
 
@@ -174,11 +176,20 @@ def scrape_web_url(url: str, only_main_content: bool = True) -> Dict[str, Any]:
         only_main_content: Whether to strip navigation, footers, and boilerplate (default True).
     """
     scrape_res = firecrawl_conn.scrape_url(url=url, only_main_content=only_main_content)
+    if not scrape_res.get("success", False) or scrape_res.get("status", 200) >= 400:
+        return {
+            "url": url,
+            "status": "error",
+            "http_status": scrape_res.get("status", 502),
+            "error": scrape_res.get("error", f"Failed to scrape {url}"),
+            "markdown_content": ""
+        }
     return {
         "url": url,
         "title": scrape_res.get("title", ""),
         "markdown_content": scrape_res.get("markdown", "")[:5000],
-        "status": scrape_res.get("status", 200)
+        "status": "success",
+        "http_status": 200
     }
 
 @server.tool()
@@ -213,39 +224,46 @@ def extract_social_thread(platform: str, url_or_query: str) -> Dict[str, Any]:
     
     # 1. Reddit
     if "reddit" in platform_clean:
-        if url_or_query.startswith("http"):
-            clean_url = url_or_query.split("?")[0].rstrip("/")
-            json_url = f"{clean_url}.json"
-            try:
-                import httpx
-                headers = {"User-Agent": "HomePilot-Intelligence-Researcher/1.0 (contact: info@homepilot.ie)"}
-                res = httpx.get(json_url, headers=headers, timeout=15.0)
-                if res.status_code == 200:
-                    data = res.json()
-                    post_data = data[0]["data"]["children"][0]["data"]
-                    comments_data = data[1]["data"]["children"]
-                    comments = []
-                    for c in comments_data[:10]:
-                        if "body" in c.get("data", {}):
-                            comments.append(c["data"]["body"][:500])
+        if url_or_query.startswith("http") or "/comments/" in url_or_query:
+            # Check if official Reddit OAuth connector is configured
+            if reddit_conn.is_configured():
+                thread_res = reddit_conn.fetch_thread(url_or_id=url_or_query, max_comments=50)
+                if thread_res.get("success"):
                     return {
                         "platform": "reddit",
-                        "title": post_data.get("title", ""),
-                        "subreddit": post_data.get("subreddit", ""),
-                        "author": "[REDACTED_USER]",
-                        "selftext": post_data.get("selftext", "")[:3000],
-                        "comments_sample": comments,
-                        "extraction_method": "reddit_direct_api"
+                        "status": "success",
+                        "extraction_method": "reddit_oauth_api",
+                        "title": thread_res.get("title", ""),
+                        "subreddit": thread_res.get("subreddit", ""),
+                        "url": thread_res.get("url", url_or_query),
+                        "score": thread_res.get("score", 0),
+                        "selftext": thread_res.get("selftext", "")[:4000],
+                        "total_comments_in_thread": thread_res.get("total_comments_in_thread", 0),
+                        "comments_extracted": thread_res.get("comments_extracted", 0),
+                        "comments_sample": [c["body"][:400] for c in thread_res.get("comments", [])[:15]]
                     }
-            except Exception:
-                pass
-            
-            scrape_res = firecrawl_conn.scrape_url(url=url_or_query, only_main_content=True)
+
+            # If Reddit credentials are not configured or direct call failed, fetch search index snippets
+            search_res = firecrawl_conn.search(query=url_or_query, limit=2)
+            snippets = [r.get("description", "") for r in search_res if r.get("description")]
+
             return {
                 "platform": "reddit",
-                "title": scrape_res.get("title", ""),
-                "content": scrape_res.get("markdown", "")[:4000],
-                "extraction_method": "firecrawl_scrape"
+                "url": url_or_query,
+                "status": "credentials_required" if not reddit_conn.is_configured() else "blocked_by_anti_bot",
+                "http_status": 403,
+                "error": (
+                    "Reddit OAuth credentials (REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET) are not configured on Render. "
+                    "Reddit blocks direct unauthenticated scraping."
+                    if not reddit_conn.is_configured()
+                    else "Failed to extract thread via Reddit OAuth API."
+                ),
+                "available_search_snippets": snippets,
+                "comments_extracted": 0,
+                "guidance": (
+                    "To read full posts and all 50+ comments directly, add REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET to Render Environment. "
+                    "Alternatively, use available search snippets above or paste the thread content directly."
+                )
             }
         else:
             search_query = f"site:reddit.com/r/ireland OR site:reddit.com/r/irishpersonalfinance {url_or_query}"
@@ -254,6 +272,7 @@ def extract_social_thread(platform: str, url_or_query: str) -> Dict[str, Any]:
                 "platform": "reddit",
                 "query": url_or_query,
                 "discussions_found": results,
+                "status": "success",
                 "extraction_method": "firecrawl_search"
             }
 

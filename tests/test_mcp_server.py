@@ -94,6 +94,21 @@ def test_mcp_extract_social_thread_reddit():
     assert res["platform"] == "reddit"
     assert "discussions_found" in res
 
+def test_mcp_extract_social_thread_reddit_url_blocked_anti_bot():
+    url = "https://www.reddit.com/r/irishpersonalfinance/comments/1xwxv80/savings_journey/"
+    res = extract_social_thread("reddit", url)
+    assert res["platform"] == "reddit"
+    assert res["status"] in ("credentials_required", "blocked_by_anti_bot")
+    assert "error" in res
+    assert "Help to Buy" not in res.get("content", "")
+
+def test_mcp_scrape_reddit_returns_explicit_error_not_fake_placeholder():
+    url = "https://www.reddit.com/r/irishpersonalfinance/comments/1xwxv80/savings_journey/"
+    res = scrape_web_url(url)
+    assert res["status"] == "error"
+    assert res["http_status"] in (403, 502)
+    assert "Help to Buy" not in res.get("markdown_content", "")
+
 def test_mcp_extract_social_thread_x():
     res = extract_social_thread("x", "Central Bank mortgage caps")
     assert res["platform"] == "x"

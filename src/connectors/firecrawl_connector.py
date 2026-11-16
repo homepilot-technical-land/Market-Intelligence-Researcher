@@ -74,8 +74,23 @@ class FirecrawlConnector:
                     "title": "Blocked by Budget Governor",
                     "markdown": "",
                     "status": 429,
+                    "success": False,
                     "error": msg
                 }
+
+        # Reddit blocks direct scraping and Firecrawl standard API rejects reddit.com
+        if "reddit.com" in url.lower():
+            logger.warning(f"Reddit scrape blocked: Firecrawl does not support scraping reddit.com: {url}")
+            return {
+                "url": url,
+                "title": "Reddit Direct Scrape Blocked",
+                "description": "",
+                "markdown": "",
+                "metadata": {"statusCode": 403, "error": "Reddit blocks direct automated scraping. Firecrawl does not support scraping reddit.com."},
+                "status": 403,
+                "success": False,
+                "error": "Reddit enforces strict anti-bot policies and Firecrawl standard API does not support scraping reddit.com directly. Use search_web_sources for public search snippets or provide the thread content directly."
+            }
 
         if self.is_configured():
             try:
@@ -129,7 +144,26 @@ class FirecrawlConnector:
                     "success": data.get("success", True)
                 }
             except Exception as e:
-                logger.error(f"Firecrawl Scrape failed for {url}: {e}. Falling back to simulation.")
+                err_msg = str(e)
+                status_code = 502
+                if hasattr(e, "response") and e.response is not None:
+                    status_code = e.response.status_code
+                    try:
+                        err_json = e.response.json()
+                        err_msg = err_json.get("error", err_msg)
+                    except Exception:
+                        pass
+                logger.error(f"Firecrawl Scrape failed for {url} ({status_code}): {err_msg}")
+                return {
+                    "url": url,
+                    "title": f"Failed to Scrape: {url}",
+                    "description": "",
+                    "markdown": "",
+                    "metadata": {"statusCode": status_code, "error": err_msg},
+                    "status": status_code,
+                    "success": False,
+                    "error": err_msg
+                }
 
         # Fallback simulation for offline testing / development
         logger.info(f"Simulating Firecrawl scrape for URL: {url}")
