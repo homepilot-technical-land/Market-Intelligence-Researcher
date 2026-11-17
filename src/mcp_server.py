@@ -158,6 +158,52 @@ def get_out_of_focus_regional_alerts(limit: int = 5) -> List[Dict[str, Any]]:
     return repo.list_regional_spike_alerts(limit=limit, active_only=True)
 
 @server.tool()
+def record_campaign_social_spike(
+    topic: str,
+    sentiment: str,
+    summary: str,
+    counter_hook: Optional[str] = None,
+    campaign_name: Optional[str] = None
+) -> Dict[str, Any]:
+    """Record a real-time viral social discussion or buyer sentiment spike on X relating to the active campaign via GrokBot.
+    
+    This injects live X-platform discourse into the daily executive intelligence briefing and alerts operators to shifts in buyer psychology.
+    
+    Args:
+        topic: The trending topic or debate on X (e.g. '#HelpToBuy delays', 'Kildare new launch price hike').
+        sentiment: Dominant buyer sentiment (e.g. 'Anxious & Confused', 'Frustrated with Scheme Caps', 'Optimistic').
+        summary: Concise breakdown of what buyers and brokers are saying on X.
+        counter_hook: Recommended HomePilot educational counter-narrative, mythbuster, or tool positioning.
+        campaign_name: Optional campaign title (defaults to active campaign).
+    """
+    active_camp = repo.get_active_campaign_focus()
+    c_name = campaign_name or active_camp.get("campaign_name", "Active Campaign")
+    spike = repo.record_campaign_social_spike({
+        "campaign_name": c_name,
+        "topic": topic,
+        "sentiment": sentiment,
+        "summary": summary,
+        "counter_hook": counter_hook or "Deploy HomePilot educational guide.",
+        "status": "active"
+    })
+    return {
+        "status": "social_spike_recorded",
+        "spike_id": spike["spike_id"],
+        "campaign_name": c_name,
+        "topic": topic,
+        "message": f"Social discourse spike on X recorded for '{topic}'. Surfaced in next Daily Briefing."
+    }
+
+@server.tool()
+def get_campaign_social_spikes(limit: int = 5) -> List[Dict[str, Any]]:
+    """Retrieve active viral social spikes and sentiment shifts recorded from the X platform.
+    
+    Args:
+        limit: Max number of active spikes to return (default 5).
+    """
+    return repo.list_campaign_social_spikes(limit=limit, active_only=True)
+
+@server.tool()
 def search_evidence_pool(query: str, limit: int = 5) -> List[Dict[str, Any]]:
     """Search verified ground-truth quotations, data points, and ingested documents stored in the 14-collection MongoDB database.
     

@@ -387,3 +387,42 @@ class IntelligenceRepository:
             alerts = [a for a in alerts if a.get("status") == "active"]
         alerts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         return alerts[:limit]
+
+    # --- 16. Campaign Social Spikes on X (Bilateral GrokBot Feed) ---
+    def record_campaign_social_spike(self, spike_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Records a viral social discussion or buyer sentiment spike on X relating to the active campaign."""
+        import uuid
+        spike_id = spike_data.get("spike_id") or f"x_spike_{uuid.uuid4().hex[:8]}"
+        spike_data["spike_id"] = spike_id
+        if "created_at" not in spike_data:
+            spike_data["created_at"] = datetime.now(timezone.utc).isoformat()
+        if "status" not in spike_data:
+            spike_data["status"] = "active"
+
+        if self._connected and self.db_manager.db is not None:
+            self.db_manager.db.intelligence_findings.update_one(
+                {"spike_id": spike_id},
+                {"$set": spike_data},
+                upsert=True
+            )
+        self._store.setdefault("campaign_social_spikes", {})[spike_id] = spike_data
+        logger.info(f"💬 Recorded active campaign social spike on X: '{spike_data.get('topic')}' (campaign: {spike_data.get('campaign_name')})")
+        return spike_data
+
+    def list_campaign_social_spikes(self, limit: int = 10, active_only: bool = True) -> List[Dict[str, Any]]:
+        """Lists recorded campaign social spikes on X."""
+        if self._connected and self.db_manager.db is not None:
+            query = {"spike_id": {"$exists": True}}
+            if active_only:
+                query["status"] = "active"
+            cursor = self.db_manager.db.intelligence_findings.find(query).sort("created_at", -1).limit(limit)
+            results = []
+            for doc in cursor:
+                doc.pop("_id", None)
+                results.append(doc)
+            return results
+        spikes = list(self._store.get("campaign_social_spikes", {}).values())
+        if active_only:
+            spikes = [s for a in spikes if (s := a).get("status") == "active"]
+        spikes.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return spikes[:limit]

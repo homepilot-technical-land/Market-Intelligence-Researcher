@@ -9,6 +9,8 @@ from src.mcp_server import (
     get_active_campaign_target,
     trigger_out_of_focus_regional_alert,
     get_out_of_focus_regional_alerts,
+    record_campaign_social_spike,
+    get_campaign_social_spikes,
     get_latest_daily_briefing
 )
 
@@ -123,3 +125,26 @@ def test_scheduler_daemon_executes_dynamic_campaign():
     assert result["status"] == "success"
     assert result["campaign_name"] == "Daemon Multi-County Verification"
     assert result["target_counties"] == ["Kildare", "Meath"]
+
+def test_campaign_social_spike_on_x_via_mcp():
+    # 1. Record an X discourse spike via MCP
+    res = record_campaign_social_spike(
+        topic="#HelpToBuy Approval Latency Surge",
+        sentiment="High Buyer Anxiety",
+        summary="Viral X thread detailing 8-week Revenue Help-to-Buy claim delays causing contract signing defaults.",
+        counter_hook="Deploy HomePilot Guide: Parallel Processing HTB & Bank Underwriting Without Contract Risk.",
+        campaign_name="Daemon Multi-County Verification"
+    )
+    assert res["status"] == "social_spike_recorded"
+    assert res["topic"] == "#HelpToBuy Approval Latency Surge"
+
+    # 2. Query active social spikes via MCP
+    spikes = get_campaign_social_spikes(limit=3)
+    assert len(spikes) >= 1
+    assert any(s["topic"] == "#HelpToBuy Approval Latency Surge" for s in spikes)
+
+    # 3. Verify it is reflected in Daily Briefing
+    briefing = get_latest_daily_briefing()
+    assert "#HelpToBuy Approval Latency Surge" in briefing["markdown_report"]
+    assert "Active Campaign Social Signals & X Discourse Spikes" in briefing["markdown_report"]
+    assert "High Buyer Anxiety" in briefing["markdown_report"]

@@ -24,6 +24,7 @@ class DailyBriefing(BaseModel):
     target_counties: List[str] = Field(default_factory=lambda: ["Meath"])
     active_campaign_name: Optional[str] = None
     out_of_focus_regional_alerts: List[Dict[str, Any]] = Field(default_factory=list)
+    campaign_social_spikes: List[Dict[str, Any]] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class DailyBriefingGenerator:
@@ -92,6 +93,9 @@ class DailyBriefingGenerator:
             if al_cty and al_cty not in target_counties:
                 out_of_focus_alerts.append(al)
 
+        # 4b. Query Active Campaign Social Spikes on X (from GrokBot MCP feed)
+        social_spikes = self.repo.list_campaign_social_spikes(limit=5, active_only=True)
+
         # 5. Query high-priority insights from store
         recent_insights = self.repo.list_insights(min_composite_score=70.0)
         insight_titles = [i.doc_id for i in recent_insights][:5]
@@ -150,6 +154,23 @@ class DailyBriefingGenerator:
                     ""
                 ])
 
+        # Add Active Campaign Social Spikes on X if present
+        if social_spikes:
+            report_lines.extend([
+                "## 💬 Active Campaign Social Signals & X Discourse Spikes",
+                f"> [!NOTE]",
+                f"> **Real-Time Community Sentiment & Viral Discussion on X for '{active_campaign_title}' (via GrokBot)**",
+                ""
+            ])
+            for s in social_spikes:
+                report_lines.extend([
+                    f"### 🐦 X Spike: {s.get('topic', 'Trending Housing Topic')}",
+                    f"- **Community Sentiment:** {s.get('sentiment', 'Neutral / Inquiring')}",
+                    f"- **Key Buyer Discussion Points:** {s.get('summary', 'Active community debate recorded.')}",
+                    f"- **Recommended Bot Counter-Narrative:** {s.get('counter_hook', 'Deploy educational myth-buster on HomePilot channels.')}",
+                    ""
+                ])
+
         report_lines.extend([
             "## 3. Core Persona Friction Benchmarks",
             "- **`seg_1_frustrated_ftb` (The Frustrated FTB):** Disheartened by repeat calculator use; 4.0x LTI borrowing cap is artificially constrained while rental drain prevents cash deposit accumulation.",
@@ -188,6 +209,7 @@ class DailyBriefingGenerator:
             target_counties=target_counties,
             active_campaign_name=active_campaign_title,
             out_of_focus_regional_alerts=out_of_focus_alerts,
+            campaign_social_spikes=social_spikes,
             created_at=now
         )
 
