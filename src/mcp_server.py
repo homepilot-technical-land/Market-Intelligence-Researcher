@@ -57,14 +57,105 @@ def get_county_market_benchmarks(county: str = "Meath") -> Dict[str, Any]:
     }
 
 @server.tool()
-def get_latest_daily_briefing(county: str = "Meath") -> Dict[str, Any]:
-    """Fetch the latest compiled morning intelligence briefing for an Irish commuter county, synthesized from live sources and price trends.
+def get_latest_daily_briefing(
+    county: Optional[str] = None,
+    campaign_name: Optional[str] = None
+) -> Dict[str, Any]:
+    """Fetch the latest compiled morning intelligence briefing, synthesized from live sources and price trends.
+    
+    If no county is specified, automatically batches across the current active campaign's targeted regions
+    and includes any breaking Out-of-Focus Regional Spike Alerts.
     
     Args:
-        county: Irish county name (e.g. 'Meath', 'Kildare', 'Wicklow').
+        county: Optional specific Irish county name (e.g. 'Meath', 'Kildare', 'Wicklow'). Defaults to active campaign regions.
+        campaign_name: Optional campaign title filter.
     """
-    briefing = daily_gen.generate_morning_briefing(county_focus=county)
+    briefing = daily_gen.generate_morning_briefing(county_focus=county, campaign_name=campaign_name)
     return briefing.model_dump()
+
+@server.tool()
+def set_active_campaign_target(
+    campaign_name: str,
+    target_counties: List[str],
+    target_personas: Optional[List[str]] = None,
+    notes: Optional[str] = None
+) -> Dict[str, Any]:
+    """Set the active marketing campaign and its target geographic counties for the daily batching engine via GrokBot.
+    
+    When set, the 07:00 UTC daily briefing, PPR affordability scans, and macro syntheses will automatically batch
+    across these designated counties for the active campaign sprint.
+    
+    Args:
+        campaign_name: Title of the campaign sprint (e.g. 'Q1 Commuter Cap Straddler Squeeze').
+        target_counties: List of Irish counties targeted by this campaign period (e.g. ['Kildare', 'Meath', 'Wicklow']).
+        target_personas: Optional list of persona IDs (e.g. ['seg_1_frustrated_ftb', 'dyn_seg_commuter_cap_straddler']).
+        notes: Optional strategic notes or commercial intent from the marketing operators.
+    """
+    res = repo.set_active_campaign_focus(
+        campaign_name=campaign_name,
+        target_counties=target_counties,
+        target_personas=target_personas,
+        notes=notes
+    )
+    return {
+        "status": "active_campaign_updated",
+        "campaign_name": res["campaign_name"],
+        "target_counties": res["target_counties"],
+        "target_personas": res["target_personas"],
+        "message": f"Daily batching engine is now focused on {len(res['target_counties'])} counties: {', '.join(res['target_counties'])}."
+    }
+
+@server.tool()
+def get_active_campaign_target() -> Dict[str, Any]:
+    """Retrieve the current active marketing campaign parameters, target counties, and persona focus."""
+    return repo.get_active_campaign_focus()
+
+@server.tool()
+def trigger_out_of_focus_regional_alert(
+    county: str,
+    headline: str,
+    summary: str,
+    facts: Optional[List[str]] = None,
+    strategic_implications: Optional[str] = None,
+    category: str = "Statutory / Market Anomaly"
+) -> Dict[str, Any]:
+    """Trigger an Out-of-Focus Regional Spike Alert when news, price anomalies, or statutory changes break in an unfocused county.
+    
+    This records the alert in MongoDB and immediately surfaces it in the operator daily briefings and GrokBot feeds.
+    
+    Args:
+        county: Irish county where the unexpected spike occurred (e.g. 'Cork', 'Galway', 'Louth').
+        headline: Concise headline describing the breaking regional event.
+        summary: Detailed breakdown of the event, facts, and source attribution.
+        facts: List of verified numbers, quotes, or circular references.
+        strategic_implications: How this impacts HomePilot's positioning or buyer journey.
+        category: Event category (e.g. 'Statutory / Market Anomaly', 'Price Surge', 'Planning Crisis').
+    """
+    alert = repo.record_regional_spike_alert({
+        "county": county.strip().title(),
+        "headline": headline,
+        "summary": summary,
+        "facts": facts or [],
+        "strategic_implications": strategic_implications or "Monitor for potential campaign expansion.",
+        "category": category,
+        "status": "active"
+    })
+    return {
+        "status": "alert_triggered",
+        "alert_id": alert["alert_id"],
+        "county": alert["county"],
+        "headline": alert["headline"],
+        "message": f"Out-of-focus alert recorded for County {alert['county']}. It will be surfaced in the next Daily Briefing."
+    }
+
+@server.tool()
+def get_out_of_focus_regional_alerts(limit: int = 5) -> List[Dict[str, Any]]:
+    """Retrieve breaking news, statutory policy changes, or price spikes detected in counties outside the current campaign focus.
+    
+    Args:
+        limit: Max number of active alerts to return (default 5).
+    """
+    return repo.list_regional_spike_alerts(limit=limit, active_only=True)
 
 @server.tool()
 def search_evidence_pool(query: str, limit: int = 5) -> List[Dict[str, Any]]:

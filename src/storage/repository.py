@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from src.storage.mongo_client import MongoDBManager
 from src.models import (
     IntelligenceSource,
@@ -306,3 +306,84 @@ class IntelligenceRepository:
                 results.append(AudiencePersona(**doc))
             return results
         return [AudiencePersona(**v) for v in self._store["audience_personas"].values() if not active_only or v.get("active", True)]
+
+    # --- 15. Dynamic Campaign Focus & Regional Spike Alerts (GrokBot MCP Bridge) ---
+    def set_active_campaign_focus(
+        self,
+        campaign_name: str,
+        target_counties: List[str],
+        target_personas: Optional[List[str]] = None,
+        notes: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Sets the active marketing campaign and its target geographic counties via GrokBot / MCP."""
+        cleaned_counties = [c.strip().title() for c in target_counties if c.strip()]
+        doc = {
+            "focus_id": "current_active_campaign",
+            "campaign_name": campaign_name,
+            "target_counties": cleaned_counties or ["Meath"],
+            "target_personas": target_personas or [],
+            "notes": notes or "",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        if self._connected and self.db_manager.db is not None:
+            self.db_manager.db.campaign_opportunities.update_one(
+                {"focus_id": "current_active_campaign"},
+                {"$set": doc},
+                upsert=True
+            )
+        self._store.setdefault("active_campaign_focus", {})["current"] = doc
+        logger.info(f"Updated active campaign focus: '{campaign_name}' targeting {doc['target_counties']}")
+        return doc
+
+    def get_active_campaign_focus(self) -> Dict[str, Any]:
+        """Retrieves the active marketing campaign parameters and target regions."""
+        if self._connected and self.db_manager.db is not None:
+            doc = self.db_manager.db.campaign_opportunities.find_one({"focus_id": "current_active_campaign"})
+            if doc:
+                doc.pop("_id", None)
+                return doc
+        return self._store.get("active_campaign_focus", {}).get("current", {
+            "focus_id": "current_active_campaign",
+            "campaign_name": "Commuter Belt Scheme Gap Sprint",
+            "target_counties": ["Meath", "Kildare", "Wicklow"],
+            "target_personas": ["seg_1_frustrated_ftb", "dyn_seg_commuter_cap_straddler"],
+            "notes": "Targeting Dublin commuter belt first-time buyers navigating scheme cap boundaries."
+        })
+
+    def record_regional_spike_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Records an out-of-focus regional anomaly or breaking news spike alert."""
+        import uuid
+        alert_id = alert_data.get("alert_id") or f"spike_{uuid.uuid4().hex[:8]}"
+        alert_data["alert_id"] = alert_id
+        if "created_at" not in alert_data:
+            alert_data["created_at"] = datetime.now(timezone.utc).isoformat()
+        if "status" not in alert_data:
+            alert_data["status"] = "active"
+
+        if self._connected and self.db_manager.db is not None:
+            self.db_manager.db.intelligence_findings.update_one(
+                {"alert_id": alert_id},
+                {"$set": alert_data},
+                upsert=True
+            )
+        self._store.setdefault("regional_spike_alerts", {})[alert_id] = alert_data
+        logger.warning(f"🚨 Recorded out-of-focus regional spike alert for County {alert_data.get('county')}: {alert_data.get('headline')}")
+        return alert_data
+
+    def list_regional_spike_alerts(self, limit: int = 20, active_only: bool = True) -> List[Dict[str, Any]]:
+        """Lists recorded out-of-focus regional alerts."""
+        if self._connected and self.db_manager.db is not None:
+            query = {"alert_id": {"$exists": True}}
+            if active_only:
+                query["status"] = "active"
+            cursor = self.db_manager.db.intelligence_findings.find(query).sort("created_at", -1).limit(limit)
+            results = []
+            for doc in cursor:
+                doc.pop("_id", None)
+                results.append(doc)
+            return results
+        alerts = list(self._store.get("regional_spike_alerts", {}).values())
+        if active_only:
+            alerts = [a for a in alerts if a.get("status") == "active"]
+        alerts.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return alerts[:limit]

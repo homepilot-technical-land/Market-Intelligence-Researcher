@@ -12,7 +12,7 @@ import os
 import signal
 import asyncio
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone
 
 from src.storage.repository import IntelligenceRepository
@@ -40,18 +40,44 @@ class ProductionSchedulerDaemon:
         self.last_cadence_run: Optional[datetime] = None
         self.last_gap_batch_run: Optional[datetime] = None
 
-    def execute_daily_briefing_job(self, county_focus: str = "Meath") -> Dict[str, Any]:
-        """Job 1: Compiles and records the daily executive briefing."""
-        logger.info(f"Executing scheduled 07:00 UTC Daily Briefing job for {county_focus}...")
+    def execute_daily_briefing_job(
+        self,
+        county_focus: Optional[str] = None,
+        counties: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Job 1: Compiles and records the daily executive briefing based on the active campaign's target regions."""
+        active_campaign = self.repo.get_active_campaign_focus()
+        campaign_name = active_campaign.get("campaign_name", "Commuter Belt Scheme Gap Sprint")
+        
+        if counties:
+            target_counties = counties
+        elif county_focus and county_focus != "Meath":
+            target_counties = [county_focus]
+        else:
+            target_counties = active_campaign.get("target_counties", ["Meath", "Kildare", "Wicklow"])
+
+        logger.info(f"Executing scheduled 07:00 UTC Daily Briefing job for campaign '{campaign_name}' targeting {target_counties}...")
         try:
-            briefing = self.briefing_gen.generate_morning_briefing(county_focus=county_focus)
+            briefing = self.briefing_gen.generate_morning_briefing(
+                counties=target_counties,
+                campaign_name=campaign_name
+            )
             self.last_briefing_time = datetime.now(timezone.utc)
             self.telemetry.capture("daily.briefing.generated", {
                 "briefing_id": briefing.briefing_id,
-                "county": county_focus,
-                "date": briefing.briefing_date
+                "campaign_name": campaign_name,
+                "target_counties": target_counties,
+                "date": briefing.briefing_date,
+                "out_of_focus_alerts": len(briefing.out_of_focus_regional_alerts)
             })
-            return {"status": "success", "briefing_id": briefing.briefing_id, "time": self.last_briefing_time.isoformat()}
+            return {
+                "status": "success",
+                "briefing_id": briefing.briefing_id,
+                "campaign_name": campaign_name,
+                "target_counties": target_counties,
+                "out_of_focus_alerts_count": len(briefing.out_of_focus_regional_alerts),
+                "time": self.last_briefing_time.isoformat()
+            }
         except Exception as e:
             logger.error(f"Error executing daily briefing job: {e}")
             return {"status": "failed", "error": str(e)}
