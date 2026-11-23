@@ -127,10 +127,15 @@ flowchart TD
     - *Master architecture & execution plan for Phase 5: Autonomous background daemon (07:00 UTC), RFC 7807 error formatting, PII sanitization guards, PostHog telemetry dashboards, and Docker/CI-CD.*
 29. [homepilot_phase5_execution_and_completion_report.md](homepilot_phase5_execution_and_completion_report.md)
     - *Phase 5 completion report: Zero-trust PII scrubbing, RFC 7807 middleware, autonomous scheduling daemon, Docker/CI-CD packaging, and turnkey MongoDB Atlas readiness.*
-30. [homepilot_grokbot_desktop_and_mobile_synchronization_spec.md](homepilot_grokbot_desktop_and_mobile_synchronization_spec.md)
+---
+
+### Part 8: Dynamic Campaign Batching, Social Spikes & Cloud Scour Operations (Phases 5+)
+32. [homepilot_grokbot_desktop_and_mobile_synchronization_spec.md](homepilot_grokbot_desktop_and_mobile_synchronization_spec.md)
     - *GrokBot Desktop & Mobile Synchronization: Master persona prompt, 5 operational routines, and zero-config web & tunnel setup guide.*
-31. [homepilot_mcp_and_api_builder_connection_guide.md](homepilot_mcp_and_api_builder_connection_guide.md)
-    - *MCP Server vs. API Builder Integration Guide: Native Model Context Protocol setup, 6 exposed tools, dual stdio/SSE transports, and desktop config.*
+33. [homepilot_mcp_and_api_builder_connection_guide.md](homepilot_mcp_and_api_builder_connection_guide.md)
+    - *MCP Server vs. API Builder Integration Guide: Native Model Context Protocol setup, 8 exposed tools, adaptive stdio/SSE/streamable-http transports, and desktop config.*
+34. [../.github/workflows/scheduled_intelligence_scour.yml](../.github/workflows/scheduled_intelligence_scour.yml)
+    - *Automated Nightly Cloud Scour (02:00 UTC): Autonomous GitHub Actions runner, pre-flight environment diagnostics, and memory-fallback resilience.*
 
 ---
 
@@ -138,6 +143,6 @@ flowchart TD
 
 ```bash
 source .venv/bin/activate && pytest -q
-======================= 68 passed in 51.20s =======================
+======================= 85 passed in 2:56s =======================
 ```
-All 68 unit, integration, and MCP tests across the entire codebase are 100% green.
+All 85 unit, integration, and MCP tests across the entire codebase are 100% green, covering multi-source ingestion, PII scrubbing, RFC 7807 problem details, dynamic campaign batching, out-of-focus anomaly radar, and adaptive MCP transport.
