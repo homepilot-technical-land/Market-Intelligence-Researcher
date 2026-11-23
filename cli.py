@@ -501,6 +501,8 @@ def main():
             print(f"\n[REJECTED]: Asset {rejected.asset_id} marked as '{rejected.review_status}'.")
 
     elif args.command == "run-daemon":
+        if not pipeline.repo.list_sources():
+            pipeline.load_sources_from_registry()
         from src.scheduling.daemon import ProductionSchedulerDaemon
         daemon = ProductionSchedulerDaemon(repository=pipeline.repo, pipeline=pipeline)
         if args.once:

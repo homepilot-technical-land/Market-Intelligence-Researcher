@@ -502,12 +502,13 @@ if __name__ == "__main__":
     from starlette.routing import Route
     from mcp.server.transport_security import TransportSecuritySettings
 
+    default_transport = "stdio" if not sys.stdin.isatty() else "remote"
     parser = argparse.ArgumentParser(description="HomePilot Market Intelligence MCP Server")
     parser.add_argument(
         "--transport",
         choices=["stdio", "sse", "streamable-http", "remote"],
-        default="remote",
-        help="MCP transport protocol ('remote' serves both SSE and Streamable HTTP with tunnel security enabled)"
+        default=default_transport,
+        help="MCP transport protocol (defaults to 'stdio' in piped/headless environments like Claude Desktop, or 'remote' in terminal)"
     )
     parser.add_argument("--host", default="0.0.0.0", help="Host interface (default 0.0.0.0)")
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "8001")), help="Port for web/remote transport (default 8001 or $PORT)")

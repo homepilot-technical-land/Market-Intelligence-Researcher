@@ -70,6 +70,16 @@ class ProductionSchedulerDaemon:
                 "date": briefing.briefing_date,
                 "out_of_focus_alerts": len(briefing.out_of_focus_regional_alerts)
             })
+
+            # Cluster signals into campaign opportunities for the primary county
+            try:
+                from src.intelligence.theme_clustering import ThemeClusteringEngine
+                clustering = ThemeClusteringEngine(repository=self.repo)
+                primary_county = target_counties[0] if target_counties else "Meath"
+                clustering.cluster_signals(county=primary_county)
+            except Exception as cluster_err:
+                logger.warning(f"Theme clustering during briefing skipped: {cluster_err}")
+
             return {
                 "status": "success",
                 "briefing_id": briefing.briefing_id,
@@ -90,6 +100,13 @@ class ProductionSchedulerDaemon:
         """
         logger.info("Executing scheduled source cadence monitor job...")
         sources = self.repo.list_sources(active_only=True)
+        if not sources:
+            logger.info("No active sources found in repository. Auto-loading approved seeds from registry...")
+            try:
+                self.pipeline.load_sources_from_registry()
+                sources = self.repo.list_sources(active_only=True)
+            except Exception as load_err:
+                logger.warning(f"Could not auto-load sources registry: {load_err}")
 
         def get_crawl_key(s):
             if not s.last_crawled_at:
@@ -101,6 +118,7 @@ class ProductionSchedulerDaemon:
         sources = sorted(sources, key=get_crawl_key)
         checked_count = 0
         discovered_total = 0
+        documents_ingested = 0
 
         for source in sources:
             if max_sources is not None and checked_count >= max_sources:
@@ -113,6 +131,17 @@ class ProductionSchedulerDaemon:
                     discovered_total += len(urls)
                     source.last_crawled_at = datetime.now(timezone.utc)
                     self.repo.upsert_source(source)
+
+                    # Ingest top approved URLs into documents & intelligence_findings
+                    approved = [u for u in urls if getattr(u, "tier1_status", None) == "approved"]
+                    for app_url in approved[:2]:
+                        try:
+                            doc = self.pipeline.process_url(source.source_id, app_url.url)
+                            if doc:
+                                self.pipeline.analyze_document_intelligence(doc)
+                                documents_ingested += 1
+                        except Exception as doc_err:
+                            logger.warning(f"Failed document ingestion for {app_url.url}: {doc_err}")
                 except Exception as e:
                     logger.warning(f"Failed source discovery for {source.source_id}: {e}")
 
@@ -121,6 +150,7 @@ class ProductionSchedulerDaemon:
             "status": "success",
             "sources_checked": checked_count,
             "urls_discovered": discovered_total,
+            "documents_ingested": documents_ingested,
             "time": self.last_cadence_run.isoformat()
         }
 
@@ -162,6 +192,20 @@ class ProductionSchedulerDaemon:
         b_res = self.execute_daily_briefing_job()
         c_res = self.execute_cadence_monitor_job(max_sources=max_sources)
         g_res = self.execute_closed_loop_gap_job()
+
+        # Log agent run
+        from src.models.agent_run import AgentRun
+        try:
+            run_record = AgentRun(
+                run_id=f"run_daemon_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}",
+                agent_type="scheduler_daemon",
+                status="success",
+                queue_name="production_daemon",
+                created_at=datetime.now(timezone.utc)
+            )
+            self.repo.log_agent_run(run_record)
+        except Exception as err:
+            logger.warning(f"Error logging agent run: {err}")
 
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),

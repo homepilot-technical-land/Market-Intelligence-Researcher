@@ -31,7 +31,8 @@ class MongoDBManager:
     ]
 
     def __init__(self, uri: Optional[str] = None, db_name: Optional[str] = None):
-        self.uri = uri or os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+        raw_uri = (uri if uri is not None else os.getenv("MONGODB_URI", "")).strip()
+        self.uri = raw_uri if raw_uri else "mongodb://localhost:27017"
         extracted_db = None
         try:
             from urllib.parse import urlparse
@@ -47,14 +48,20 @@ class MongoDBManager:
 
     def connect(self) -> bool:
         """Connect to MongoDB with a short timeout to fail fast if offline."""
+        if not self.uri or not (self.uri.startswith("mongodb://") or self.uri.startswith("mongodb+srv://")):
+            logger.warning(f"MongoDB URI invalid or empty ('{self.uri}'). Operating with memory fallback.")
+            self.client = None
+            self.db = None
+            return False
+
         try:
             self.client = MongoClient(self.uri, serverSelectionTimeoutMS=2000)
             self.client.admin.command("ping")
             self.db = self.client[self.db_name]
             logger.info(f"Connected to MongoDB database: {self.db_name}")
             return True
-        except (ConnectionFailure, ServerSelectionTimeoutError) as e:
-            logger.warning(f"MongoDB offline at {self.uri}. Operating with memory fallback.")
+        except (ConnectionFailure, ServerSelectionTimeoutError, Exception) as e:
+            logger.warning(f"MongoDB connection failed at {self.uri}: {e}. Operating with memory fallback.")
             self.client = None
             self.db = None
             return False
