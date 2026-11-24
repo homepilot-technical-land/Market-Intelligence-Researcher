@@ -7,6 +7,7 @@ from src.mcp_server import (
     search_evidence_pool,
     submit_knowledge_gap,
     submit_campaign_blueprint,
+    submit_research_assessment,
     ask_research_engine,
     scrape_web_url,
     search_web_sources,
@@ -134,3 +135,26 @@ def test_mcp_synthesize_x_discourse_second_time_buyer():
     assert "analysis" in res
     assert "buyer_pain_points" in res
     assert "proposed_bot_communications" in res
+
+def test_mcp_submit_research_assessment():
+    res = submit_research_assessment(
+        title="Navan Commuter Cap Spread Analysis",
+        analysis="Deep research assessment showing second-phase new builds priced at €385k vs €375k First Home Scheme cap.",
+        key_findings=["€10,000 cap breach", "60% buyer attrition in Navan LEA"],
+        buyer_pain_points=["Inability to qualify for First Home Scheme equity support"],
+        strategic_implications=["Deploy HomePilot Navan Scheme Gap Simulator"],
+        category="FTBS",
+        county="Meath",
+        confidence_score=92.0
+    )
+    assert res["status"] == "persisted_to_mongodb"
+    assert "doc_id" in res
+    assert "insight_id" in res
+    assert "evidence_id" in res
+    assert res["composite_score"] == 92.0
+
+    # Verify presence in repository
+    insight = repo.get_insight(res["insight_id"])
+    assert insight is not None
+    assert insight.primary_category == "FTBS"
+

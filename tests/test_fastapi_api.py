@@ -38,3 +38,22 @@ def test_create_research_objective():
         data = res.json()
         assert data["status"] == "created"
         assert data["objective"]["objective_id"] == "obj_ftb_affordability_2026"
+
+def test_create_research_assessment_endpoint():
+    with TestClient(app) as client:
+        payload = {
+            "title": "Weekly Commuter Affordability Memo",
+            "analysis": "Tri-weekly exploration into Kildare commuter rail corridors.",
+            "key_findings": ["Naas median starter price €395k", "HTB claims take 7 weeks"],
+            "buyer_pain_points": ["Prolonged approval delays"],
+            "strategic_implications": ["Highlight parallel processing guide"],
+            "category": "FTBS",
+            "county": "Kildare",
+            "confidence_score": 88.0
+        }
+        res = client.post("/research/assessments", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "persisted_to_mongodb"
+        assert "doc_id" in data
+        assert "insight_id" in data

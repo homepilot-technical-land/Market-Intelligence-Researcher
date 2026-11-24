@@ -238,6 +238,122 @@ def submit_knowledge_gap(topic: str, questions: List[str]) -> Dict[str, Any]:
     }
 
 @server.tool()
+def submit_research_assessment(
+    title: str,
+    analysis: str,
+    key_findings: List[str],
+    buyer_pain_points: List[str],
+    strategic_implications: List[str],
+    category: str = "FTBS",
+    county: Optional[str] = "Meath",
+    evidence_quote: Optional[str] = None,
+    source_reference: Optional[str] = "grokbot_deep_research",
+    confidence_score: float = 85.0
+) -> Dict[str, Any]:
+    """Submit a structured research assessment, deep-dive exploration, or weekly analytical overview directly into the HomePilot MongoDB intelligence pool.
+    
+    This records the assessment into MongoDB across documents, evidence_records, and intelligence_findings.
+    The system automatically incorporates it into theme clustering, daily briefings, and dynamic buyer persona tracking.
+    
+    Args:
+        title: Title or research topic of the assessment.
+        analysis: Full analytical text, thesis, or exploration breakdown.
+        key_findings: List of verified factual developments or key takeaways.
+        buyer_pain_points: Specific buyer frictions, anxieties, or obstacles identified.
+        strategic_implications: Strategic relevance to HomePilot product positioning or campaigns.
+        category: Primary Irish taxonomy category code (e.g. 'FTBS', 'IRPM', 'HPR', 'MIRC'). Default 'FTBS'.
+        county: Focus Irish county (e.g. 'Meath', 'Kildare', 'Dublin', 'Wicklow').
+        evidence_quote: Optional verbatim evidence quote or empirical data anchor.
+        source_reference: Name of document or URL source referenced.
+        confidence_score: Assessment confidence score (0.0 to 100.0, default 85.0).
+    """
+    import uuid
+    from datetime import datetime, timezone
+    from src.models.document import ExtractedDocument
+    from src.models.evidence import SourceEvidence
+    from src.models.insight import MarketInsight, ScoringBreakdown, TenQuestionsAnalysis
+
+    uid = uuid.uuid4().hex[:8]
+    doc_id = f"grok_doc_{uid}"
+    now = datetime.now(timezone.utc)
+
+    # 1. Save extracted document
+    doc = ExtractedDocument(
+        doc_id=doc_id,
+        source_id="grokbot_research",
+        url=f"grokbot://assessment/{uid}",
+        title=title,
+        published_at=now,
+        markdown=analysis,
+        cleaned_text=analysis,
+        content_hash=f"hash_{uid}"
+    )
+    repo.save_document(doc)
+
+    # 2. Save source evidence
+    ev_id = f"ev_{uid}_01"
+    quote = evidence_quote or (key_findings[0] if key_findings else analysis[:200])
+    claim = key_findings[0] if key_findings else title
+    evidence = SourceEvidence(
+        evidence_id=ev_id,
+        doc_id=doc_id,
+        source_url=f"grokbot://assessment/{uid}",
+        claim=claim,
+        verbatim_quote=quote[:500],
+        confidence_tier=2,
+        verified_by_human=False
+    )
+    repo.add_evidence(evidence)
+
+    # 3. Save market insight
+    scoring = ScoringBreakdown(
+        composite_score=min(100.0, max(0.0, confidence_score)),
+        s_relevance=85.0,
+        s_impact=85.0,
+        s_confidence=confidence_score,
+        s_time_sensitivity=80.0,
+        s_campaign_alignment=80.0,
+        s_geography=80.0
+    )
+    ten_qs = TenQuestionsAnalysis(
+        q1_what_happened=title,
+        q2_why_it_matters=analysis[:200],
+        q3_who_is_affected=", ".join(buyer_pain_points[:3]) if buyer_pain_points else "Irish Homebuyers",
+        q4_customer_problem=buyer_pain_points[0] if buyer_pain_points else "Market opacity",
+        q5_homepilot_connection=strategic_implications[0] if strategic_implications else "Product positioning",
+        q6_product_capability="Scenario comparison and buffer calculator",
+        q7_supports_existing_campaign="Yes",
+        q8_creates_new_campaign="Yes",
+        q9_time_sensitivity="High",
+        q10_additional_evidence_needed="Ongoing tracking"
+    )
+    ins_id = f"ins_{uid}"
+    insight = MarketInsight(
+        insight_id=ins_id,
+        doc_id=doc_id,
+        primary_category=category,
+        secondary_tags=["grokbot_research", county or "National"],
+        geographic_entities=[county] if county else ["National"],
+        scoring=scoring,
+        ten_questions=ten_qs,
+        evidence_ids=[ev_id],
+        status="candidate",
+        created_at=now
+    )
+    repo.save_insight(insight)
+
+    return {
+        "status": "persisted_to_mongodb",
+        "doc_id": doc_id,
+        "evidence_id": ev_id,
+        "insight_id": ins_id,
+        "category": category,
+        "county": county,
+        "composite_score": confidence_score,
+        "message": "Research assessment successfully recorded in MongoDB. The Theme Clustering Engine and Daily Morning Briefing will dynamically synthesize this evidence."
+    }
+
+@server.tool()
 def submit_campaign_blueprint(
     title: str,
     format: str,

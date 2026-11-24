@@ -130,6 +130,36 @@ def create_research_objective(req: ResearchObjectiveRequest):
     repo.save_research_objective(obj)
     return {"status": "created", "objective": obj.model_dump()}
 
+class ResearchAssessmentRequest(BaseModel):
+    title: str
+    analysis: str
+    key_findings: List[str] = []
+    buyer_pain_points: List[str] = []
+    strategic_implications: List[str] = []
+    category: str = "FTBS"
+    county: Optional[str] = "Meath"
+    evidence_quote: Optional[str] = None
+    source_reference: Optional[str] = "grokbot_deep_research"
+    confidence_score: float = 85.0
+
+@app.post("/research/assessments")
+def create_research_assessment(req: ResearchAssessmentRequest):
+    """Direct REST endpoint to persist weekly/periodic research assessments and exploratory memos into MongoDB."""
+    from src.mcp_server import submit_research_assessment
+    result = submit_research_assessment(
+        title=req.title,
+        analysis=req.analysis,
+        key_findings=req.key_findings,
+        buyer_pain_points=req.buyer_pain_points,
+        strategic_implications=req.strategic_implications,
+        category=req.category,
+        county=req.county,
+        evidence_quote=req.evidence_quote,
+        source_reference=req.source_reference,
+        confidence_score=req.confidence_score
+    )
+    return result
+
 from fastapi.responses import HTMLResponse
 from src.intelligence.daily_briefing import DailyBriefingGenerator
 from src.connectors.api_connectors import PropertyPriceRegisterConnector, CSOStatConnector
